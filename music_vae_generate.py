@@ -24,8 +24,9 @@ import os
 import sys
 import time
 
-from magenta.models.music_vae import configs
-from magenta.models.music_vae import TrainedModel
+# update
+import configs
+from trained_model import TrainedModel
 import note_seq
 import numpy as np
 import tensorflow.compat.v1 as tf

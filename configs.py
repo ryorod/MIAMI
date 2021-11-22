@@ -20,8 +20,9 @@ from magenta.common import merge_hparams
 from magenta.contrib import training as contrib_training
 from magenta.models.music_vae import data
 from magenta.models.music_vae import data_hierarchical
-from magenta.models.music_vae import lstm_models
-from magenta.models.music_vae.base_model import MusicVAE
+# update
+import lstm_models
+from base_model import MusicVAE
 import note_seq
 
 HParams = contrib_training.HParams
@@ -289,6 +290,43 @@ CONFIG_MAP['hierdec-trio_16bar'] = Config(
             batch_size=256,
             max_seq_len=256,
             z_size=512,
+            enc_rnn_size=[2048, 2048],
+            dec_rnn_size=[1024, 1024],
+            free_bits=256,
+            max_beta=0.2,
+        )),
+    note_sequence_augmenter=None,
+    data_converter=trio_16bar_converter,
+    train_examples_path=None,
+    eval_examples_path=None,
+)
+
+# update
+CONFIG_MAP['hierdec-trio_16bar_3dim'] = Config(
+    model=MusicVAE(
+        lstm_models.BidirectionalLstmEncoder(),
+        lstm_models.HierarchicalLstmDecoder(
+            lstm_models.SplitMultiOutLstmDecoder(
+                core_decoders=[
+                    lstm_models.CategoricalLstmDecoder(),
+                    lstm_models.CategoricalLstmDecoder(),
+                    lstm_models.CategoricalLstmDecoder()],
+                output_depths=[
+                    90,  # melody
+                    90,  # bass
+                    512,  # drums
+                ]),
+            level_lengths=[16, 16],
+            disable_autoregression=True),
+        intermediate_layer=True),
+    hparams=merge_hparams(
+        lstm_models.get_default_hparams(),
+        HParams(
+            batch_size=256,
+            max_seq_len=256,
+            intermediate_1_size=512,
+            intermediate_2_size=128,
+            z_size=3,
             enc_rnn_size=[2048, 2048],
             dec_rnn_size=[1024, 1024],
             free_bits=256,

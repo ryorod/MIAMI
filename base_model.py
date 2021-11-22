@@ -127,15 +127,18 @@ class BaseDecoder(object, metaclass=abc.ABCMeta):
 class MusicVAE(object):
   """Music Variational Autoencoder."""
 
-  def __init__(self, encoder, decoder):
+  # update
+  def __init__(self, encoder, decoder, intermediate_layer=False):
     """Initializer for a MusicVAE model.
 
     Args:
       encoder: A BaseEncoder implementation class to use.
       decoder: A BaseDecoder implementation class to use.
+      intermediate_layer: Use intermediate dense layer or not.
     """
     self._encoder = encoder
     self._decoder = decoder
+    self._intermediate_layer = intermediate_layer
 
   def build(self, hparams, output_depth, is_training):
     """Builds encoder and decoder.
@@ -154,7 +157,7 @@ class MusicVAE(object):
     self.global_step = tf.train.get_or_create_global_step()
     self._hparams = hparams
     self._encoder.build(hparams, is_training)
-    self._decoder.build(hparams, output_depth, is_training)
+    self._decoder.build(hparams, output_depth, is_training, self.intermediate_layer)
 
   @property
   def encoder(self):
@@ -163,6 +166,10 @@ class MusicVAE(object):
   @property
   def decoder(self):
     return self._decoder
+
+  @property
+  def intermediate_layer(self):
+    return self._intermediate_layer
 
   @property
   def hparams(self):
@@ -192,6 +199,22 @@ class MusicVAE(object):
       control_sequence = tf.to_float(control_sequence)
       sequence = tf.concat([sequence, control_sequence], axis=-1)
     encoder_output = self.encoder.encode(sequence, sequence_length)
+
+    # update
+    if self.intermediate_layer:
+      intermediate_1_size = hparams.intermediate_1_size
+      intermediate_2_size = hparams.intermediate_2_size
+
+      x = tf.layers.dense(
+        encoder_output,
+        intermediate_1_size,
+        activation=tf.nn.leaky_relu,
+        name='encoder/intermediate_1')
+      encoder_output = tf.layers.dense(
+        x,
+        intermediate_2_size,
+        activation=tf.nn.leaky_relu,
+        name='encoder/intermediate_2')
 
     mu = tf.layers.dense(
         encoder_output,

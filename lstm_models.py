@@ -21,8 +21,9 @@ from magenta.common import Nade
 import magenta.contrib.rnn as contrib_rnn
 import magenta.contrib.seq2seq as contrib_seq2seq
 import magenta.contrib.training as contrib_training
-from magenta.models.music_vae import base_model
-from magenta.models.music_vae import lstm_utils
+# update
+import base_model
+import lstm_utils
 import numpy as np
 import tensorflow.compat.v1 as tf
 import tensorflow_probability as tfp
@@ -883,7 +884,8 @@ class HierarchicalLstmDecoder(base_model.BaseDecoder):
     self._disable_autoregression = disable_autoregression
     self._hierarchical_encoder = hierarchical_encoder
 
-  def build(self, hparams, output_depth, is_training=True):
+  # update
+  def build(self, hparams, output_depth, is_training=True, intermediate_layer=False):
     self.hparams = hparams
     self._output_depth = output_depth
     self._total_length = hparams.max_seq_len
@@ -908,6 +910,8 @@ class HierarchicalLstmDecoder(base_model.BaseDecoder):
 
     with tf.variable_scope('core_decoder', reuse=tf.AUTO_REUSE):
       self._core_decoder.build(hparams, output_depth, is_training)
+
+    self.intermediate_layer = intermediate_layer
 
   @property
   def state_size(self):
@@ -955,7 +959,8 @@ class HierarchicalLstmDecoder(base_model.BaseDecoder):
       num_steps = self._level_lengths[level]
       with tf.variable_scope(scope):
         state = lstm_utils.initial_cell_state_from_embedding(
-            self._hier_cells[level], initial_input, name='initial_state')
+            # update
+            self._hier_cells[level], initial_input, name='initial_state', intermediate_layer=self.intermediate_layer, hparams=hparams)
       if level not in self._disable_autoregression:
         # The initial input should be the same size as the tensors returned by
         # next level.

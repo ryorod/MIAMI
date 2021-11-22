@@ -85,9 +85,26 @@ def set_final(sequence, sequence_length, values, time_major=False):
   return sequence_batch_major
 
 
-def initial_cell_state_from_embedding(cell, z, name=None):
+# update
+def initial_cell_state_from_embedding(cell, z, name=None, intermediate_layer=False, hparams=None):
   """Computes an initial RNN `cell` state from an embedding, `z`."""
   flat_state_sizes = tf.nest.flatten(cell.state_size)
+
+  if intermediate_layer and hparams is not None:
+    intermediate_1_size = hparams.intermediate_1_size
+    intermediate_2_size = hparams.intermediate_2_size
+
+    x = tf.layers.dense(
+      z,
+      intermediate_2_size,
+      activation=tf.nn.leaky_relu,
+      name=name+'/intermediate_2')
+    z = tf.layers.dense(
+      x,
+      intermediate_1_size,
+      activation=tf.nn.leaky_relu,
+      name=name+'/intermediate_1')
+
   return tf.nest.pack_sequence_as(
       cell.zero_state(batch_size=z.shape[0], dtype=tf.float32),
       tf.split(

@@ -23,6 +23,7 @@ from __future__ import print_function
 import os
 import sys
 import time
+import glob
 
 import configs
 from trained_model import TrainedModel
@@ -145,7 +146,6 @@ def _slerp(p0, p1, t):
 
 def encode_dataset(
           model,
-          # train_dir,
           config,
           dataset_fn,
           checkpoints_to_keep=5,
@@ -166,8 +166,66 @@ def encode_dataset(
   #   with tf.device(tf.train.replica_device_setter(
   #       num_ps_tasks, merge_devices=True)):
 
-  encoded = model.encode(dataset_fn())
-  print(encoded)
+  # encoded = model.encode(dataset_fn())
+  # print(encoded)
+  
+  examples_path = config.train_examples_path + '/*.mid'
+  dataset_paths = glob.glob(examples_path)
+
+  date_and_time = time.strftime('%Y-%m-%d_%H%M%S')
+  
+  def _check_extract_examples(input_ns, path, input_number):
+    """Make sure each input returns exactly one example from the converter."""
+    isValid = True
+    tensors = config.data_converter.to_tensors(input_ns).outputs
+    if not tensors:
+      print(
+          'MusicVAE configs have very specific input requirements. Could not '
+          'extract any valid inputs from `%s`. Try another MIDI file.' % path)
+      # sys.exit()
+      isValid = False
+      return isValid
+    elif len(tensors) > 1:
+      basename = os.path.join(
+          FLAGS.output_dir,
+          '%s_input%d-extractions_%s-*-of-%03d.mid' %
+          (FLAGS.config, input_number, date_and_time, len(tensors)))
+      for i, ns in enumerate(config.data_converter.from_tensors(tensors)):
+        note_seq.sequence_proto_to_midi_file(
+            ns, basename.replace('*', '%03d' % i))
+      print(
+          '%d valid inputs extracted from `%s`. Outputting these potential '
+          'inputs as `%s`. Call script again with one of these instead.' %
+          (len(tensors), path, basename))
+      # sys.exit()
+      isValid = False
+      return isValid
+    else:
+      return isValid
+
+  logging.info(
+      'Attempting to extract examples from input MIDIs using config `%s`...',
+      FLAGS.config)
+
+  dataset = []
+  for i, input_path in enumerate(dataset_paths):
+    input_midi = os.path.expanduser(input_path)
+    input = note_seq.midi_file_to_note_sequence(input_midi)
+    if _check_extract_examples(input, input_path, i+1):
+      dataset.append(input)
+    else:
+      continue
+
+  z, _, _ = model.encode(dataset)
+  file = open('./tmp/latent_vectors.txt', 'w')
+  file.write(z)
+  file.close()
+
+  # dataset = []
+  # for file in os.listdir(examples_path):
+  #   file_path = os.path.join(examples_path, file)
+  #   if os.path.isfile(file_path):
+  #     dataset.append(file_path)
 
       # hooks = []
       # if num_sync_workers:
@@ -317,8 +375,8 @@ def load_model(config_map):
 #       '%s_%s_%s-*-of-%03d.mid' %
 #       (FLAGS.config, FLAGS.mode, date_and_time, FLAGS.num_outputs))
 #   logging.info('Outputting %d files as `%s`...', FLAGS.num_outputs, basename)
-#   for i, ns in enumerate(results):
-#     note_seq.sequence_proto_to_midi_file(ns, basename.replace('*', '%03d' % i))
+  # for i, ns in enumerate(results):
+  #   note_seq.sequence_proto_to_midi_file(ns, basename.replace('*', '%03d' % i))
 
 #   logging.info('Done.')
 

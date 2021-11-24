@@ -215,10 +215,11 @@ def encode_dataset(
       dataset.append(input)
     else:
       continue
+  print('Number of Latent Vectors: %i' % len(dataset))
 
   z, _, _ = model.encode(dataset)
   file = open('./tmp/latent_vectors.txt', 'w')
-  file.write(z)
+  file.write(str(z))
   file.close()
 
   # dataset = []

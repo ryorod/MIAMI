@@ -215,11 +215,14 @@ class BaseLstmDecoder(base_model.BaseDecoder):
       -`_flat_reconstruction_loss`
   """
 
-  def build(self, hparams, output_depth, is_training=True):
+  # update
+  def build(self, hparams, output_depth, is_training=True, intermediate_layer=False):
     if hparams.use_cudnn:
       tf.logging.warning('cuDNN LSTM no longer supported. Using regular LSTM.')
 
     self._is_training = is_training
+    self._intermediate_layer = intermediate_layer
+    self._hparams = hparams
 
     tf.logging.info('\nDecoder Cells:\n'
                     '  units: %s\n',
@@ -281,7 +284,7 @@ class BaseLstmDecoder(base_model.BaseDecoder):
       results: The LstmDecodeResults.
     """
     initial_state = lstm_utils.initial_cell_state_from_embedding(
-        self._dec_cell, z, name='decoder/z_to_initial_state')
+        self._dec_cell, z, name='decoder/z_to_initial_state', intermediate_layer=self._intermediate_layer, hparams=self._hparams)
 
     decoder = lstm_utils.Seq2SeqLstmDecoder(
         self._dec_cell,

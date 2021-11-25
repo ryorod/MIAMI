@@ -91,7 +91,7 @@ flags.DEFINE_string(
 #     'training and evaluation. Separate subdirectories `train` and `eval` '
 #     'will be created within this directory.')
 flags.DEFINE_string(
-    'log_dir', 'temp',
+    'logdir', 'temp',
     'Location for where to save the model and other related files.')
 flags.DEFINE_integer(
     'num_steps', 200000,
@@ -401,7 +401,7 @@ def train(config_map,
   Raises:
     ValueError: if required flags are missing or invalid.
   """
-  log_dir = os.path.expanduser(FLAGS.log_dir)
+  logdir = os.path.expanduser(FLAGS.logdir)
 
   if FLAGS.mode not in ['train', 'eval']:
     raise ValueError('Invalid mode: %s' % FLAGS.mode)
@@ -459,7 +459,7 @@ def train(config_map,
                 iaf_flow_length=5,
                 batch_size=config.hparams.batch_size,
                 batch_size_test=config.hparams.batch_size,
-                logdir=log_dir,
+                logdir=logdir,
                 tb_logging=True)
   
   cvae_model.train()

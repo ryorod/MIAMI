@@ -25,14 +25,14 @@ import sys
 import time
 import glob
 
-import configs
-from trained_model import TrainedModel
+import MusicVAE.configs as configs
+from MusicVAE.trained_model import TrainedModel
 from magenta.models.music_vae import data
 import note_seq
 import numpy as np
 import tensorflow.compat.v1 as tf
 
-# import cvae
+import CompressionVAE.cvae as cvae
 
 flags = tf.app.flags
 logging = tf.logging
@@ -218,9 +218,11 @@ def encode_dataset(
   print('Number of Latent Vectors: %i' % len(dataset))
 
   z, _, _ = model.encode(dataset)
-  file = open('./tmp/latent_vectors.txt', 'w')
-  file.write(str(z))
-  file.close()
+  # file = open('./tmp/latent_vectors.txt', 'w')
+  # file.write(str(z))
+  # file.close()
+  
+  return z
 
   # dataset = []
   # for file in os.listdir(examples_path):
@@ -438,33 +440,28 @@ def train(config_map,
         is_training=is_training,
         cache_dataset=FLAGS.cache_dataset)
 
-  if is_training:
-    encode_dataset(
-        model,
-        # train_dir,
-        config=config,
-        dataset_fn=dataset_fn,
-        checkpoints_to_keep=FLAGS.checkpoints_to_keep,
-        keep_checkpoint_every_n_hours=FLAGS.keep_checkpoint_every_n_hours,
-        num_steps=FLAGS.num_steps,
-        master=FLAGS.master,
-        num_sync_workers=FLAGS.num_sync_workers,
-        num_ps_tasks=FLAGS.num_ps_tasks,
-        task=FLAGS.task)
-  # else:
-  #   num_batches = FLAGS.eval_num_batches or data.count_examples(
-  #       config.eval_examples_path,
-  #       config.tfds_name,
-  #       config.data_converter,
-  #       file_reader) // config.hparams.batch_size
-  #   eval_dir = os.path.join(run_dir, 'eval' + FLAGS.eval_dir_suffix)
-  #   evaluate(
-  #       train_dir,
-  #       eval_dir,
-  #       config=config,
-  #       dataset_fn=dataset_fn,
-  #       num_batches=num_batches,
-  #       master=FLAGS.master)
+  z = encode_dataset(
+      model,
+      # train_dir,
+      config=config,
+      dataset_fn=dataset_fn,
+      checkpoints_to_keep=FLAGS.checkpoints_to_keep,
+      keep_checkpoint_every_n_hours=FLAGS.keep_checkpoint_every_n_hours,
+      num_steps=FLAGS.num_steps,
+      master=FLAGS.master,
+      num_sync_workers=FLAGS.num_sync_workers,
+      num_ps_tasks=FLAGS.num_ps_tasks,
+      task=FLAGS.task)
+  
+  cvae_model = cvae.CompressionVAE(
+                z,
+                dim_latent=3,
+                iaf_flow_length=5,
+                batch_size=config.hparams.batch_size,
+                batch_size_test=config.hparams.batch_size,
+                tb_logging=True)
+  
+  cvae_model.train()
 
 
 def run(config_map):

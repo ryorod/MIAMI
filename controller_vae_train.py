@@ -86,7 +86,7 @@ flags.DEFINE_string(
     'latent_vectors_path', './tmp/latent_vectors.npy',
     'Path to a npy file of latent vectors.')
 flags.DEFINE_bool(
-    'save_latent_vectors', False,
+    'save_latent_vectors', True,
     'Whether to save latent vectors in a npy file.')
 flags.DEFINE_bool(
     'use_saved_latent_vectors', False,

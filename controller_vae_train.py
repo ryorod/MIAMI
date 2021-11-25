@@ -401,7 +401,7 @@ def train(config_map,
   if not FLAGS.run_dir:
     raise ValueError('Invalid run directory: %s' % FLAGS.run_dir)
   run_dir = os.path.expanduser(FLAGS.run_dir)
-  # train_dir = os.path.join(run_dir, 'train')
+  train_dir = os.path.join(run_dir, 'train')
 
   if FLAGS.mode not in ['train', 'eval']:
     raise ValueError('Invalid mode: %s' % FLAGS.mode)

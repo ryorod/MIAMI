@@ -83,6 +83,15 @@ flags.DEFINE_string(
     'examples_path', None,
     'Path to a TFRecord file of NoteSequence examples. Overrides the config.')
 flags.DEFINE_string(
+    'latent_vectors_path', './tmp/latent_vectors.npy',
+    'Path to a npy file of latent vectors.')
+flags.DEFINE_bool(
+    'save_latent_vectors', False,
+    'Whether to save latent vectors in a npy file.')
+flags.DEFINE_bool(
+    'use_saved_latent_vectors', False,
+    'Whether to use already-saved latent vectors for training instead of encoding examples.')
+flags.DEFINE_string(
     'tfds_name', None,
     'TensorFlow Datasets dataset name to use. Overrides the config.')
 flags.DEFINE_string(
@@ -172,60 +181,76 @@ def encode_dataset(
   # encoded = model.encode(dataset_fn())
   # print(encoded)
   
-  examples_path = config.train_examples_path + '/*.mid'
-  dataset_paths = glob.glob(examples_path)
+  if FLAGS.use_saved_latent_vectors:
+    path = os.path.expanduser(FLAGS.latent_vectors_path)
+    _, ext = os.path.splitext(path)
+    if not ext == '.npy':
+      raise ValueError(
+        'Filename must end with .npy.')
+    
+    z = np.load(path)
+    return z
+  else:
+    examples_path = config.train_examples_path + '/*.mid'
+    dataset_paths = glob.glob(examples_path)
 
-  date_and_time = time.strftime('%Y-%m-%d_%H%M%S')
+    date_and_time = time.strftime('%Y-%m-%d_%H%M%S')
   
-  def _check_extract_examples(input_ns, path, input_number):
-    """Make sure each input returns exactly one example from the converter."""
-    isValid = True
-    tensors = config.data_converter.to_tensors(input_ns).outputs
-    if not tensors:
-      print(
-          'MusicVAE configs have very specific input requirements. Could not '
-          'extract any valid inputs from `%s`. Try another MIDI file.' % path)
-      # sys.exit()
-      isValid = False
-      return isValid
-    elif len(tensors) > 1:
-      basename = os.path.join(
-          FLAGS.output_dir,
-          '%s_input%d-extractions_%s-*-of-%03d.mid' %
-          (FLAGS.config, input_number, date_and_time, len(tensors)))
-      for i, ns in enumerate(config.data_converter.from_tensors(tensors)):
-        note_seq.sequence_proto_to_midi_file(
-            ns, basename.replace('*', '%03d' % i))
-      print(
-          '%d valid inputs extracted from `%s`. Outputting these potential '
-          'inputs as `%s`. Call script again with one of these instead.' %
-          (len(tensors), path, basename))
-      # sys.exit()
-      isValid = False
-      return isValid
-    else:
-      return isValid
+    def _check_extract_examples(input_ns, path, input_number):
+      """Make sure each input returns exactly one example from the converter."""
+      isValid = True
+      tensors = config.data_converter.to_tensors(input_ns).outputs
+      if not tensors:
+        print(
+            'MusicVAE configs have very specific input requirements. Could not '
+            'extract any valid inputs from `%s`. Try another MIDI file.' % path)
+        # sys.exit()
+        isValid = False
+        return isValid
+      elif len(tensors) > 1:
+        basename = os.path.join(
+            FLAGS.output_dir,
+            '%s_input%d-extractions_%s-*-of-%03d.mid' %
+            (FLAGS.config, input_number, date_and_time, len(tensors)))
+        for i, ns in enumerate(config.data_converter.from_tensors(tensors)):
+          note_seq.sequence_proto_to_midi_file(
+              ns, basename.replace('*', '%03d' % i))
+        print(
+            '%d valid inputs extracted from `%s`. Outputting these potential '
+            'inputs as `%s`. Call script again with one of these instead.' %
+            (len(tensors), path, basename))
+        # sys.exit()
+        isValid = False
+        return isValid
+      else:
+        return isValid
 
-  logging.info(
-      'Attempting to extract examples from input MIDIs using config `%s`...',
-      FLAGS.config)
+    logging.info(
+        'Attempting to extract examples from input MIDIs using config `%s`...',
+        FLAGS.config)
 
-  dataset = []
-  for i, input_path in enumerate(dataset_paths):
-    input_midi = os.path.expanduser(input_path)
-    input = note_seq.midi_file_to_note_sequence(input_midi)
-    if _check_extract_examples(input, input_path, i+1):
-      dataset.append(input)
-    else:
-      continue
-  print('Number of Latent Vectors: %i' % len(dataset))
+    dataset = []
+    for i, input_path in enumerate(dataset_paths):
+      input_midi = os.path.expanduser(input_path)
+      input = note_seq.midi_file_to_note_sequence(input_midi)
+      if _check_extract_examples(input, input_path, i+1):
+        dataset.append(input)
+      else:
+        continue
+    print('Number of Latent Vectors: %i' % len(dataset))
 
-  z, _, _ = model.encode(dataset)
-  # file = open('./tmp/latent_vectors.txt', 'w')
-  # file.write(str(z))
-  # file.close()
+    z, _, _ = model.encode(dataset)
   
-  return z
+    if FLAGS.save_latent_vectors:
+      path = os.path.expanduser(FLAGS.latent_vectors_path)
+      _, ext = os.path.splitext(path)
+      if not ext == '.npy':
+        raise ValueError(
+          'Filename must end with .npy.')
+      
+      np.save(path, z)
+
+    return z
 
   # dataset = []
   # for file in os.listdir(examples_path):

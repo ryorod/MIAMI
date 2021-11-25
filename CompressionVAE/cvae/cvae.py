@@ -19,10 +19,10 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 
 # update
-import lib.data_reader_array as dra
-import lib.data_reader as dr
-import lib.model_iaf as model
-import lib.functions as fun
+import CompressionVAE.cvae.lib.data_reader_array as dra
+import CompressionVAE.cvae.lib.data_reader as dr
+import CompressionVAE.cvae.lib.model_iaf as model
+import CompressionVAE.cvae.lib.functions as fun
 
 
 # Save model to checkpoint

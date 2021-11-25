@@ -85,11 +85,11 @@ flags.DEFINE_string(
 flags.DEFINE_string(
     'tfds_name', None,
     'TensorFlow Datasets dataset name to use. Overrides the config.')
-# flags.DEFINE_string(
-#     'run_dir', None,
-#     'Path where checkpoints and summary events will be located during '
-#     'training and evaluation. Separate subdirectories `train` and `eval` '
-#     'will be created within this directory.')
+flags.DEFINE_string(
+    'run_dir', None,
+    'Path where checkpoints and summary events will be located during '
+    'training and evaluation. Separate subdirectories `train` and `eval` '
+    'will be created within this directory.')
 flags.DEFINE_string(
     'logdir', 'temp',
     'Location for where to save the model and other related files.')

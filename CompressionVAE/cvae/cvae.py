@@ -139,6 +139,8 @@ class CompressionVAE(object):
         self.tb_logging = tb_logging
 
         self.trained_once_this_session = False
+        
+        tf.disable_v2_behavior()
 
         # --- Check for existing model ---
 

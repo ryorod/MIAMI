@@ -22,8 +22,8 @@ import magenta.contrib.rnn as contrib_rnn
 import magenta.contrib.seq2seq as contrib_seq2seq
 import magenta.contrib.training as contrib_training
 # update
-import base_model
-import lstm_utils
+import MusicVAE.base_model as base_model
+import MusicVAE.lstm_utils as lstm_utils
 import numpy as np
 import tensorflow.compat.v1 as tf
 import tensorflow_probability as tfp

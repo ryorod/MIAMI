@@ -25,8 +25,8 @@ import sys
 import time
 
 # update
-import configs
-from trained_model import TrainedModel
+import MusicVAE.configs as configs
+from MusicVAE.trained_model import TrainedModel
 import note_seq
 import numpy as np
 import tensorflow.compat.v1 as tf

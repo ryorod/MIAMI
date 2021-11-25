@@ -21,8 +21,8 @@ from magenta.contrib import training as contrib_training
 from magenta.models.music_vae import data
 from magenta.models.music_vae import data_hierarchical
 # update
-import lstm_models
-from base_model import MusicVAE
+import MusicVAE.lstm_models as lstm_models
+from MusicVAE.base_model import MusicVAE
 import note_seq
 
 HParams = contrib_training.HParams

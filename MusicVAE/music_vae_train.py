@@ -17,7 +17,7 @@
 import os
 
 # update
-import configs
+import MusicVAE.configs as configs
 from magenta.models.music_vae import data
 import tensorflow.compat.v1 as tf
 import tf_slim

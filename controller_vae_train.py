@@ -401,7 +401,7 @@ def train(config_map,
   Raises:
     ValueError: if required flags are missing or invalid.
   """
-  log_dir = os.path.expanduser(FLAGS.run_dir)
+  log_dir = os.path.expanduser(FLAGS.log_dir)
 
   if FLAGS.mode not in ['train', 'eval']:
     raise ValueError('Invalid mode: %s' % FLAGS.mode)

@@ -32,7 +32,7 @@ import note_seq
 import numpy as np
 import tensorflow.compat.v1 as tf
 
-import CompressionVAE.cvae as cvae
+import CompressionVAE.cvae.cvae as cvae
 
 flags = tf.app.flags
 logging = tf.logging

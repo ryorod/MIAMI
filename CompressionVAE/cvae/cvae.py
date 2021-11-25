@@ -6,9 +6,10 @@ import time
 import shutil
 
 import numpy as np
-import tensorflow as tf
+# update
+import tensorflow.compat.v1 as tf
 try:
-    tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
+    tf.logging.set_verbosity(tf.logging.ERROR)
 except:
     pass
 
@@ -17,10 +18,11 @@ except:
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 
-import cvae.lib.data_reader_array as dra
-import cvae.lib.data_reader as dr
-import cvae.lib.model_iaf as model
-import cvae.lib.functions as fun
+# update
+import lib.data_reader_array as dra
+import lib.data_reader as dr
+import lib.model_iaf as model
+import lib.functions as fun
 
 
 # Save model to checkpoint

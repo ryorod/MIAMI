@@ -85,11 +85,14 @@ flags.DEFINE_string(
 flags.DEFINE_string(
     'tfds_name', None,
     'TensorFlow Datasets dataset name to use. Overrides the config.')
+# flags.DEFINE_string(
+#     'run_dir', None,
+#     'Path where checkpoints and summary events will be located during '
+#     'training and evaluation. Separate subdirectories `train` and `eval` '
+#     'will be created within this directory.')
 flags.DEFINE_string(
-    'run_dir', None,
-    'Path where checkpoints and summary events will be located during '
-    'training and evaluation. Separate subdirectories `train` and `eval` '
-    'will be created within this directory.')
+    'log_dir', 'temp',
+    'Location for where to save the model and other related files.')
 flags.DEFINE_integer(
     'num_steps', 200000,
     'Number of training steps or `None` for infinite.')
@@ -398,10 +401,7 @@ def train(config_map,
   Raises:
     ValueError: if required flags are missing or invalid.
   """
-  if not FLAGS.run_dir:
-    raise ValueError('Invalid run directory: %s' % FLAGS.run_dir)
-  run_dir = os.path.expanduser(FLAGS.run_dir)
-  # train_dir = os.path.join(run_dir, 'train')
+  log_dir = os.path.expanduser(FLAGS.run_dir)
 
   if FLAGS.mode not in ['train', 'eval']:
     raise ValueError('Invalid mode: %s' % FLAGS.mode)
@@ -459,7 +459,7 @@ def train(config_map,
                 iaf_flow_length=5,
                 batch_size=config.hparams.batch_size,
                 batch_size_test=config.hparams.batch_size,
-                logdir=run_dir,
+                logdir=log_dir,
                 tb_logging=True)
   
   cvae_model.train()

@@ -79,6 +79,10 @@ flags.DEFINE_string(
 flags.DEFINE_integer(
     'num_steps', 200000,
     'Number of training steps or `None` for infinite.')
+flags.DEFINE_string(
+    'log', 'INFO',
+    'The threshold for what messages will be logged: '
+    'DEBUG, INFO, WARN, ERROR, or FATAL.')
 
 
 def encode_dataset(

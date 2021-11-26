@@ -91,6 +91,9 @@ flags.DEFINE_bool(
 flags.DEFINE_bool(
     'use_saved_latent_vectors', False,
     'Whether to use already-saved latent vectors for training instead of encoding examples.')
+flags.DEFINE_bool(
+    'embed_decode', False,
+    'Whether to embed given data and decode it.')
 flags.DEFINE_string(
     'tfds_name', None,
     'TensorFlow Datasets dataset name to use. Overrides the config.')
@@ -484,15 +487,26 @@ def train(config_map,
                 iaf_flow_length=5,
                 batch_size=config.hparams.batch_size,
                 batch_size_test=config.hparams.batch_size,
-                logdir=logdir,
-                tb_logging=True)
+                logdir=logdir)
   
   cvae_model.train()
 
+  return cvae_model, z
+
+
+def embed_decode(cvae_model, z):
+  print(z)
+  zz = cvae_model.embed(z)
+  print(zz)
+  _z = cvae_model.decode(zz)
+  print(_z)
+
 
 def run(config_map):
-    model = load_model(config_map)
-    train(config_map, model)
+  model = load_model(config_map)
+  cvae_model, z = train(config_map, model)
+  if FLAGS.embed_decode:
+    embed_decode(cvae_model, z)
 
 
 def main(unused_argv):

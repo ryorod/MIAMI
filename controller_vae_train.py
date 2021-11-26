@@ -59,8 +59,17 @@ flags.DEFINE_bool(
     'use_saved_latent_vectors', False,
     'Whether to use already-saved latent vectors for training instead of encoding examples.')
 flags.DEFINE_bool(
+    'use_random_vectors', True,
+    'Whether to use already-saved latent vectors for training instead of encoding examples.')
+flags.DEFINE_bool(
     'embed_decode', False,
     'Whether to embed given data and decode it.')
+flags.DEFINE_integer(
+    'data_size', 256,
+    '')
+flags.DEFINE_integer(
+    'data_num', 10000,
+    '')
 flags.DEFINE_string(
     'tfds_name', None,
     'TensorFlow Datasets dataset name to use. Overrides the config.')
@@ -196,11 +205,39 @@ def embed_decode(cvae_model, z):
   print(_z)
 
 
+def create_train_data(data_size=256, data_num=10000):
+  train_data = np.random.randn(data_num, data_size).astype(np.float32)
+  return train_data
+
+
+def train_with_random_vectors(train_data):
+  logdir = os.path.expanduser(FLAGS.logdir)
+
+  cvae_model = cvae.CompressionVAE(
+                train_data,
+                dim_latent=3,
+                iaf_flow_length=5,
+                batch_size=128,
+                batch_size_test=128,
+                logdir=logdir)
+  
+  cvae_model.train()
+
+  return cvae_model
+
+
 def run(config_map):
-  model = load_model(config_map)
-  cvae_model, z = train(config_map, model)
-  if FLAGS.embed_decode:
-    embed_decode(cvae_model, z)
+  if FLAGS.use_random_vectors:
+    train_data = create_train_data(data_size=FLAGS.data_size, data_num=FLAGS.data_num)
+    cvae_model = train_with_random_vectors(train_data)
+    if FLAGS.embed_decode:
+      test_data = create_train_data(data_size=FLAGS.data_size, data_num=10)
+      embed_decode(cvae_model, test_data)
+  else:
+    model = load_model(config_map)
+    cvae_model, z = train(config_map, model)
+    if FLAGS.embed_decode:
+      embed_decode(cvae_model, z)
 
 
 def main(unused_argv):

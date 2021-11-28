@@ -18,6 +18,7 @@ import os
 
 import controller_vae_configs as configs
 from magenta.models.music_vae import data
+from magenta.models.music_vae import TrainedModel
 import tensorflow.compat.v1 as tf
 import tf_slim
 
@@ -139,7 +140,7 @@ def _get_input_tensors(dataset, config):
 
 def train(train_dir,
           config,
-          checkpoint_dir_or_path,
+          trained_model,
           dataset_fn,
           checkpoints_to_keep=5,
           keep_checkpoint_every_n_hours=1,
@@ -160,9 +161,8 @@ def train(train_dir,
         num_ps_tasks, merge_devices=True)):
 
       model = config.controller_model
-      model.build(config,
-                  config.hparams,
-                  checkpoint_dir_or_path,
+      model.build(config.hparams,
+                  trained_model,
                   config.data_converter.output_depth)
 
       optimizer = model.train(**_get_input_tensors(dataset_fn(), config))
@@ -219,7 +219,7 @@ def train(train_dir,
 def evaluate(train_dir,
              eval_dir,
              config,
-             checkpoint_dir_or_path,
+             trained_model,
              dataset_fn,
              num_batches,
              master=''):
@@ -230,9 +230,8 @@ def evaluate(train_dir,
       config.hparams, config.eval_examples_path or config.tfds_name, eval_dir)
   with tf.Graph().as_default():
     model = config.controller_model
-    model.build(config,
-                config.hparams,
-                checkpoint_dir_or_path,
+    model.build(config.hparams,
+                trained_model,
                 config.data_converter.output_depth)
 
     eval_op = model.eval(
@@ -301,6 +300,10 @@ def run(config_map,
   else:
     raise ValueError('Invalid mode: {}'.format(FLAGS.mode))
 
+  trained_model = TrainedModel(
+      config, batch_size=config.hparams.batch_size,
+      checkpoint_dir_or_path=checkpoint_dir_or_path)
+
   def dataset_fn():
     return data.get_dataset(
         config,
@@ -312,7 +315,7 @@ def run(config_map,
     train(
         train_dir,
         config=config,
-        checkpoint_dir_or_path=checkpoint_dir_or_path,
+        trained_model=trained_model,
         dataset_fn=dataset_fn,
         checkpoints_to_keep=FLAGS.checkpoints_to_keep,
         keep_checkpoint_every_n_hours=FLAGS.keep_checkpoint_every_n_hours,
@@ -332,7 +335,7 @@ def run(config_map,
         train_dir,
         eval_dir,
         config=config,
-        checkpoint_dir_or_path=checkpoint_dir_or_path,
+        trained_model=trained_model,
         dataset_fn=dataset_fn,
         num_batches=num_batches,
         master=FLAGS.master)

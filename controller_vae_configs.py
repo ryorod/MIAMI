@@ -21,7 +21,6 @@ from magenta.common import flatten_maybe_padded_sequences
 from magenta.contrib import training as contrib_training
 from magenta.models.music_vae import data
 from magenta.models.music_vae import lstm_models
-from magenta.models.music_vae import TrainedModel
 from magenta.models.music_vae.base_model import MusicVAE
 import tensorflow.compat.v1 as tf
 import tensorflow_probability as tfp
@@ -129,17 +128,12 @@ class ControllerVAE(MusicVAE):
     self._decoder = TrainedModelDecoder()
 
 
-  def build(self, config, hparams, checkpoint_dir_or_path, output_depth, is_training=False):
+  def build(self, hparams, trained_model, output_depth, is_training=False):
     tf.logging.info('Building MusicVAE model with %s, %s, and hparams:\n%s',
                     self.encoder.__class__.__name__,
                     self.decoder.__class__.__name__, hparams.values())
     self.global_step = tf.train.get_or_create_global_step()
     self._hparams = hparams
-
-    trained_model = TrainedModel(
-      config, batch_size=hparams.batch_size,
-      checkpoint_dir_or_path=checkpoint_dir_or_path)
-
     self._encoder.build(trained_model, hparams, is_training)
     self._decoder.build(trained_model, hparams, output_depth, is_training)
 

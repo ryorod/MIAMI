@@ -20,9 +20,9 @@ from magenta.common import merge_hparams
 from magenta.common import flatten_maybe_padded_sequences
 from magenta.contrib import training as contrib_training
 from magenta.models.music_vae import data
-import MusicVAE.lstm_models as lstm_models
-from MusicVAE.base_model import MusicVAE
-from MusicVAE.trained_model import TrainedModel
+from magenta.models.music_vae import lstm_models
+from magenta.models.music_vae import TrainedModel
+from magenta.models.music_vae.base_model import MusicVAE
 import tensorflow.compat.v1 as tf
 import tensorflow_probability as tfp
 

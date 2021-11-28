@@ -12,67 +12,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""ControllerVAE generation script."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
+# Lint as: python3
+"""ControllerVAE training script."""
 import os
-import glob
 
-import MusicVAE.configs as configs
+import controller_vae_configs as configs
 from magenta.models.music_vae import data
-from MusicVAE.trained_model import TrainedModel
-import note_seq
-import numpy as np
 import tensorflow.compat.v1 as tf
 import tf_slim
 
 flags = tf.app.flags
-logging = tf.logging
 FLAGS = flags.FLAGS
 
-flags.DEFINE_string(
-    'checkpoint_file', None,
-    'Path to the checkpoint file. run_dir will take priority over this flag.')
-flags.DEFINE_string(
-    'output_dir', '/tmp/music_vae/generated',
-    'The directory where MIDI files will be saved to.')
-flags.DEFINE_string(
-    'config', None,
-    'The name of the config to use.')
-flags.DEFINE_integer(
-    'num_outputs', 5,
-    'In `sample` mode, the number of samples to produce. In `interpolate` '
-    'mode, the number of steps (including the endpoints).')
 flags.DEFINE_string(
     'master', '',
     'The TensorFlow master to use.')
 flags.DEFINE_string(
+    'checkpoint_file', None,
+    'Path to the checkpoint file.')
+flags.DEFINE_string(
     'examples_path', None,
     'Path to a TFRecord file of NoteSequence examples. Overrides the config.')
-flags.DEFINE_string(
-    'latent_vectors_path', './tmp/latent_vectors.npy',
-    'Path to a npy file of latent vectors.')
-flags.DEFINE_bool(
-    'save_latent_vectors', True,
-    'Whether to save latent vectors in a npy file.')
-flags.DEFINE_bool(
-    'use_saved_latent_vectors', False,
-    'Whether to use already-saved latent vectors for training instead of encoding examples.')
-flags.DEFINE_bool(
-    'use_random_vectors', True,
-    'Whether to use already-saved latent vectors for training instead of encoding examples.')
-flags.DEFINE_bool(
-    'embed_decode', False,
-    'Whether to embed given data and decode it.')
-flags.DEFINE_integer(
-    'data_size', 256,
-    '')
-flags.DEFINE_integer(
-    'data_num', 10000,
-    '')
 flags.DEFINE_string(
     'tfds_name', None,
     'TensorFlow Datasets dataset name to use. Overrides the config.')
@@ -97,6 +57,9 @@ flags.DEFINE_integer(
 flags.DEFINE_string(
     'mode', 'train',
     'Which mode to use (`train` or `eval`).')
+flags.DEFINE_string(
+    'config', '',
+    'The name of the config to use.')
 flags.DEFINE_string(
     'hparams', '',
     'A comma-separated list of `name=value` hyperparameter values to merge '
@@ -174,8 +137,9 @@ def _get_input_tensors(dataset, config):
   }
 
 
-def train_controller_vae(train_dir,
+def train(train_dir,
           config,
+          checkpoint_dir_or_path,
           dataset_fn,
           checkpoints_to_keep=5,
           keep_checkpoint_every_n_hours=1,
@@ -195,8 +159,10 @@ def train_controller_vae(train_dir,
     with tf.device(tf.train.replica_device_setter(
         num_ps_tasks, merge_devices=True)):
 
-      model = config.model
-      model.build(config.hparams,
+      model = config.controller_model
+      model.build(config,
+                  config.hparams,
+                  checkpoint_dir_or_path,
                   config.data_converter.output_depth)
 
       optimizer = model.train(**_get_input_tensors(dataset_fn(), config))
@@ -253,6 +219,7 @@ def train_controller_vae(train_dir,
 def evaluate(train_dir,
              eval_dir,
              config,
+             checkpoint_dir_or_path,
              dataset_fn,
              num_batches,
              master=''):
@@ -262,8 +229,10 @@ def evaluate(train_dir,
   _trial_summary(
       config.hparams, config.eval_examples_path or config.tfds_name, eval_dir)
   with tf.Graph().as_default():
-    model = config.model
-    model.build(config.hparams,
+    model = config.controller_model
+    model.build(config,
+                config.hparams,
+                checkpoint_dir_or_path,
                 config.data_converter.output_depth)
 
     eval_op = model.eval(
@@ -281,118 +250,21 @@ def evaluate(train_dir,
         master=master)
 
 
-def get_input_note_sequences(config):
-  examples_path = config.train_examples_path + '/*.mid'
-  midi_paths = glob.glob(examples_path)
-  
-  def _check_extract_examples(input_ns, path):
-    """Make sure each input returns exactly one example from the converter."""
-    tensors = config.data_converter.to_tensors(input_ns).outputs
-    if not tensors or len(tensors) > 1:
-      print(
-          'MusicVAE configs have very specific input requirements. Could not '
-          'extract any valid inputs from `%s`.' % path)
-      isValid = False
-      return isValid
-    else:
-      isValid = True
-      return isValid
-
-  note_sequences = []
-  for _, input_path in enumerate(midi_paths):
-    input_midi = os.path.expanduser(input_path)
-    input = note_seq.midi_file_to_note_sequence(input_midi)
-    if _check_extract_examples(input, input_path):
-      note_sequences.append(input)
-    else:
-      continue
-  print('Number of Valid NoteSequences: %i' % len(note_sequences))
-
-  return note_sequences
-
-
-def encode_dataset(
-          model,
-          config):
-  
-  if FLAGS.use_saved_latent_vectors:
-    path = os.path.expanduser(FLAGS.latent_vectors_path)
-    _, ext = os.path.splitext(path)
-    if not ext == '.npy':
-      raise ValueError(
-        'Filename must end with .npy.')
-    z = np.load(path)
-    return z
-
-  else:
-    examples_path = config.train_examples_path + '/*.mid'
-    dataset_paths = glob.glob(examples_path)
-  
-    def _check_extract_examples(input_ns, path):
-      """Make sure each input returns exactly one example from the converter."""
-      tensors = config.data_converter.to_tensors(input_ns).outputs
-      if not tensors or len(tensors) > 1:
-        print(
-            'MusicVAE configs have very specific input requirements. Could not '
-            'extract any valid inputs from `%s`.' % path)
-        isValid = False
-        return isValid
-      else:
-        isValid = True
-        return isValid
-
-    logging.info(
-        'Attempting to extract examples from input MIDIs using config `%s`...',
-        FLAGS.config)
-
-    dataset = []
-    for _, input_path in enumerate(dataset_paths):
-      input_midi = os.path.expanduser(input_path)
-      input = note_seq.midi_file_to_note_sequence(input_midi)
-      if _check_extract_examples(input, input_path):
-        dataset.append(input)
-      else:
-        continue
-    print('Number of Latent Vectors: %i' % len(dataset))
-
-    z, _, _ = model.encode(dataset)
-  
-    if FLAGS.save_latent_vectors:
-      path = os.path.expanduser(FLAGS.latent_vectors_path)
-      _, ext = os.path.splitext(path)
-      if not ext == '.npy':
-        raise ValueError(
-          'Filename must end with .npy.')
-      
-      np.save(path, z)
-
-    return z
-
-
-def load_model(config_map):
-
-  if FLAGS.checkpoint_file is None:
-    raise ValueError(
-        '`--checkpoint_file` must be specified.')
-
-  if FLAGS.config not in config_map:
-    raise ValueError('Invalid config name: %s' % FLAGS.config)
-  config = config_map[FLAGS.config]
-  config.data_converter.max_tensors_per_item = None
-
-  logging.info('Loading model...')
-  checkpoint_dir_or_path = os.path.expanduser(FLAGS.checkpoint_file)
-  model = TrainedModel(
-      config, batch_size=config.hparams.batch_size,
-      checkpoint_dir_or_path=checkpoint_dir_or_path)
-
-  return model
-
-
-def train(config_map,
-        model,
+def run(config_map,
         tf_file_reader=tf.data.TFRecordDataset,
         file_reader=tf.python_io.tf_record_iterator):
+  """Load model params, save config file and start trainer.
+  Args:
+    config_map: Dictionary mapping configuration name to Config object.
+    tf_file_reader: The tf.data.Dataset class to use for reading files.
+    file_reader: The Python reader to use for reading files.
+  Raises:
+    ValueError: if required flags are missing or invalid.
+  """
+  if not FLAGS.checkpoint_file:
+    raise ValueError(
+        '`--checkpoint_file` must be specified.')
+  checkpoint_dir_or_path = os.path.expanduser(FLAGS.checkpoint_file)
 
   if not FLAGS.run_dir:
     raise ValueError('Invalid run directory: %s' % FLAGS.run_dir)
@@ -437,9 +309,10 @@ def train(config_map,
         cache_dataset=FLAGS.cache_dataset)
 
   if is_training:
-    train_controller_vae(
+    train(
         train_dir,
         config=config,
+        checkpoint_dir_or_path=checkpoint_dir_or_path,
         dataset_fn=dataset_fn,
         checkpoints_to_keep=FLAGS.checkpoints_to_keep,
         keep_checkpoint_every_n_hours=FLAGS.keep_checkpoint_every_n_hours,
@@ -459,56 +332,14 @@ def train(config_map,
         train_dir,
         eval_dir,
         config=config,
+        checkpoint_dir_or_path=checkpoint_dir_or_path,
         dataset_fn=dataset_fn,
         num_batches=num_batches,
         master=FLAGS.master)
 
 
-# def embed_decode(cvae_model, z):
-#   print(z)
-#   zz = cvae_model.embed(z)
-#   print(zz)
-#   _z = cvae_model.decode(zz)
-#   print(_z)
-
-
-# def create_train_data(data_size=256, data_num=10000):
-#   train_data = np.random.randn(data_num, data_size).astype(np.float32)
-#   return train_data
-
-
-# def train_with_random_vectors(train_data):
-#   logdir = os.path.expanduser(FLAGS.logdir)
-
-#   cvae_model = cvae.CompressionVAE(
-#                 train_data,
-#                 dim_latent=3,
-#                 iaf_flow_length=5,
-#                 batch_size=128,
-#                 batch_size_test=128,
-#                 logdir=logdir)
-  
-#   cvae_model.train()
-
-#   return cvae_model
-
-
-def run(config_map):
-  if FLAGS.use_random_vectors:
-    train_data = create_train_data(data_size=FLAGS.data_size, data_num=FLAGS.data_num)
-    cvae_model = train_with_random_vectors(train_data)
-    if FLAGS.embed_decode:
-      test_data = create_train_data(data_size=FLAGS.data_size, data_num=10)
-      embed_decode(cvae_model, test_data)
-  else:
-    model = load_model(config_map)
-    cvae_model, z = train(config_map, model)
-    if FLAGS.embed_decode:
-      embed_decode(cvae_model, z)
-
-
 def main(unused_argv):
-  logging.set_verbosity(FLAGS.log)
+  tf.logging.set_verbosity(FLAGS.log)
   run(configs.CONFIG_MAP)
 
 

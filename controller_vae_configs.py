@@ -14,14 +14,13 @@
 
 # Lint as: python3
 """Configurations for ControllerVAE models."""
-import collections
 
 from magenta.common import merge_hparams
-from magenta.common import flatten_maybe_padded_sequences
 from magenta.contrib import training as contrib_training
 from magenta.models.music_vae import data
 from magenta.models.music_vae import lstm_models
-from magenta.models.music_vae.base_model import MusicVAE
+from magenta.models.music_vae import Config
+from magenta.models.music_vae import MusicVAE
 import tensorflow.compat.v1 as tf
 import tensorflow_probability as tfp
 
@@ -29,153 +28,63 @@ HParams = contrib_training.HParams
 ds = tfp.distributions
 
 
-class Config(collections.namedtuple(
-    'Config',
-    ['model', 'controller_model', 'hparams', 'note_sequence_augmenter', 'data_converter',
-     'train_examples_path', 'eval_examples_path', 'tfds_name'])):
-
-  def values(self):
-    return self._asdict()
-
-Config.__new__.__defaults__ = (None,) * len(Config._fields)
-
-
-def update_config(config, update_dict):
-  config_dict = config.values()
-  config_dict.update(update_dict)
-  return Config(**config_dict)
-
-
 CONFIG_MAP = {}
 
 
-# class TrainedModelEncoder(base_model.BaseEncoder):
-#   """Encodes given data with pre-trained model."""
-
-#   def __init__(self, original_encoder):
-#     self._original_encoder = original_encoder
-
-#   def build(self, model, hparams, is_training=True):
-#     self._model = model
-
-#   def encode_with_trained_model(self, sequence, sequence_length):
-#     return self._model.encode_tensors(sequence, sequence_length)
-
-
-# class TrainedModelDecoder(base_model.BaseDecoder):
-#   """Decodes latent vectors with pre-trained model."""
-
-#   def __init__(self, original_decoder):
-#     self._original_decoder = original_decoder
-
-#   def build(self, model, hparams, output_depth, is_training=True):
-#     self._model = model
-
-#   def reconstruction_loss(self, x_input, x_target, x_length, z=None,
-#                           c_input=None):
-#     pass
-
-#   def sample(self, n, max_length=None, z=None, c_input=None):
-#     pass
-
-
 class ControllerVAE(MusicVAE):
-  def __init__(self, encoder, decoder):
-    class TrainedModelEncoder(encoder):
-      """Encodes given data with pre-trained model."""
+  """Reduced-Dimensional Variational Autoencoder for controlling the original MusicVAE."""
 
-      def build(self, model, hparams, is_training=False):
-        super().build(hparams, is_training)
-        self._model = model
-
-      def encode_with_trained_model(self, sequence, sequence_length):
-        return self._model.encode_tensors(sequence, sequence_length)
-
-    class TrainedModelDecoder(decoder):
-      """Decodes latent vectors with pre-trained model."""
-
-      def build(self, model, hparams, output_depth, is_training=False):
-        super().build(hparams, output_depth, is_training)
-        self._model = model
-        self._hparams = hparams
-
-      def reconstruction_loss(self, x_input, x_target, x_length, z=None,
-                              c_input=None):
-        decode_results = self._model.decode_to_tensors(
-                              z, self._hparams.max_seq_len,
-                              c_input=c_input, return_full_results=True)
-        flat_x_target = flatten_maybe_padded_sequences(x_target, x_length)
-        flat_rnn_output = flatten_maybe_padded_sequences(
-            decode_results.rnn_output, x_length)
-        r_loss, metric_map = self._flat_reconstruction_loss(
-            flat_x_target, flat_rnn_output)
-
-        batch_size = int(x_input.shape[0])
-        # Sum loss over sequences.
-        cum_x_len = tf.concat([(0,), tf.cumsum(x_length)], axis=0)
-        r_losses = []
-        for i in range(batch_size):
-          b, e = cum_x_len[i], cum_x_len[i + 1]
-          r_losses.append(tf.reduce_sum(r_loss[b:e]))
-        r_loss = tf.stack(r_losses)
-
-        return r_loss, metric_map, decode_results
-
-      def sample(self, n, max_length=None, z=None, c_input=None):
-        pass
-
-    self._encoder = TrainedModelEncoder()
-    self._decoder = TrainedModelDecoder()
-
-
-  def build(self, hparams, trained_model, output_depth, is_training=False):
-    tf.logging.info('Building MusicVAE model with %s, %s, and hparams:\n%s',
-                    self.encoder.__class__.__name__,
-                    self.decoder.__class__.__name__, hparams.values())
-    self.global_step = tf.train.get_or_create_global_step()
-    self._hparams = hparams
-    self._encoder.build(trained_model, hparams, is_training)
-    self._decoder.build(trained_model, hparams, output_depth, is_training)
-
-
-  def encode_controller_vae(self, sequence, sequence_length, control_sequence=None):
+  def encode(self, sequence, sequence_length, control_sequence=None):
     hparams = self.hparams
-    controller_z_size = hparams.controller_z_size
+    z_size = hparams.z_size
     intermediate_size = hparams.intermediate_size
+    original_z_size = hparams.original_z_size
 
     sequence = tf.to_float(sequence)
     if control_sequence is not None:
       control_sequence = tf.to_float(control_sequence)
       sequence = tf.concat([sequence, control_sequence], axis=-1)
+    encoder_output = self.encoder.encode(sequence, sequence_length)
 
-    encoder_output, _, _ = self.encoder.encode_with_trained_model(sequence, sequence_length)
+    mu = tf.layers.dense(
+        encoder_output,
+        original_z_size,
+        name='encoder/mu',
+        kernel_initializer=tf.random_normal_initializer(stddev=0.001))
+    sigma = tf.layers.dense(
+        encoder_output,
+        original_z_size,
+        activation=tf.nn.softplus,
+        name='encoder/sigma',
+        kernel_initializer=tf.random_normal_initializer(stddev=0.001))
+    encoder_output = ds.MultivariateNormalDiag(loc=mu, scale_diag=sigma).sample()
 
     for layer, size in enumerate(intermediate_size, 1):
       encoder_output = tf.layers.dense(
         encoder_output,
         size,
         activation=tf.nn.leaky_relu,
-        name='encoder/intermediate_%i' % layer,
+        name='controller/encoder/intermediate_%i' % layer,
         kernel_initializer=tf.keras.initializers.glorot_normal)
 
     mu = tf.layers.dense(
         encoder_output,
-        controller_z_size,
-        name='encoder/mu',
+        z_size,
+        name='controller/encoder/mu',
         kernel_initializer=tf.keras.initializers.glorot_normal)
     sigma = tf.layers.dense(
         encoder_output,
-        controller_z_size,
+        z_size,
         activation=tf.nn.softplus,
-        name='encoder/sigma',
+        name='controller/encoder/sigma',
         kernel_initializer=tf.keras.initializers.glorot_normal)
 
     return ds.MultivariateNormalDiag(loc=mu, scale_diag=sigma)
 
 
-  def decode_controller_vae(self, z):
+  def decode(self, z):
     hparams = self.hparams
-    z_size = hparams.z_size
+    original_z_size = hparams.original_z_size
     intermediate_size = reversed(hparams.intermediate_size)
     decoder_output = z
 
@@ -184,15 +93,17 @@ class ControllerVAE(MusicVAE):
         decoder_output,
         size,
         activation=tf.nn.leaky_relu,
-        name='decoder/intermediate_%i' % layer,
+        name='controller/decoder/intermediate_%i' % layer,
         kernel_initializer=tf.keras.initializers.glorot_normal)
 
     decoder_output = tf.layers.dense(
       decoder_output,
-      z_size,
+      original_z_size,
       activation=tf.nn.leaky_relu,
-      name='decoder/output',
+      name='controller/decoder/output',
       kernel_initializer=tf.keras.initializers.glorot_normal)
+
+    return decoder_output
 
 
   def _compute_model_loss(
@@ -224,9 +135,9 @@ class ControllerVAE(MusicVAE):
 
     # Either encode to get `z`, or do unconditional, decoder-only.
     if hparams.z_size:  # vae mode:
-      q_z = self.encode_controller_vae(input_sequence, x_length, control_sequence)
+      q_z = self.encode(input_sequence, x_length, control_sequence)
       z = q_z.sample()
-      z = self.decode_controller_vae(z)
+      z = self.decode(z)
 
       # Prior distribution.
       p_z = ds.MultivariateNormalDiag(
@@ -260,20 +171,37 @@ class ControllerVAE(MusicVAE):
     return metric_map, scalars_to_summarize
 
 
+  def sample(self, n, max_length=None, z=None, c_input=None, **kwargs):
+    if z is not None and int(z.shape[0]) != n:
+      raise ValueError(
+          '`z` must have a first dimension that equals `n` when given. '
+          'Got: %d vs %d' % (z.shape[0], n))
+
+    if self.hparams.z_size and z is None:
+      tf.logging.warning(
+          'Sampling from conditional model without `z`. Using random `z`.')
+      normal_shape = [n, self.hparams.z_size]
+      normal_dist = tfp.distributions.Normal(
+          loc=tf.zeros(normal_shape), scale=tf.ones(normal_shape))
+      z = normal_dist.sample()
+
+    z = self.decode(z)
+
+    return self.decoder.sample(n, max_length, z, c_input, **kwargs)
+
+
 
 CONFIG_MAP['cat-drums_2bar_small_3dim'] = Config(
-    model=MusicVAE(lstm_models.BidirectionalLstmEncoder(),
-                   lstm_models.CategoricalLstmDecoder()),
-    controller_model=ControllerVAE(lstm_models.BidirectionalLstmEncoder,
-                        lstm_models.CategoricalLstmDecoder),
+    model=ControllerVAE(lstm_models.BidirectionalLstmEncoder(),
+                                   lstm_models.CategoricalLstmDecoder()),
     hparams=merge_hparams(
         lstm_models.get_default_hparams(),
         HParams(
             batch_size=512,
             max_seq_len=32,  # 2 bars w/ 16 steps per bar
-            z_size=256,
+            z_size=3,
             intermediate_size=[128],
-            controller_z_size=3,
+            original_z_size=256,
             enc_rnn_size=[512],
             dec_rnn_size=[256, 256],
             free_bits=48,

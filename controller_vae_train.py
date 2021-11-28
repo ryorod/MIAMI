@@ -15,10 +15,15 @@
 # Lint as: python3
 """ControllerVAE training script."""
 import os
+import tarfile
+import tempfile
 
 import controller_vae_configs as configs
+from magenta.models.music_vae import update_config
 from magenta.models.music_vae import data
-from magenta.models.music_vae import TrainedModel
+from magenta.models.music_vae.music_vae_train import _trial_summary
+from magenta.models.music_vae.music_vae_train import _get_input_tensors
+from magenta.models.music_vae.music_vae_train import evaluate
 import tensorflow.compat.v1 as tf
 import tf_slim
 
@@ -87,60 +92,9 @@ flags.DEFINE_string(
     'DEBUG, INFO, WARN, ERROR, or FATAL.')
 
 
-# Should not be called from within the graph to avoid redundant summaries.
-def _trial_summary(hparams, examples_path, output_dir):
-  """Writes a tensorboard text summary of the trial."""
-
-  examples_path_summary = tf.summary.text(
-      'examples_path', tf.constant(examples_path, name='examples_path'),
-      collections=[])
-
-  hparams_dict = hparams.values()
-
-  # Create a markdown table from hparams.
-  header = '| Key | Value |\n| :--- | :--- |\n'
-  keys = sorted(hparams_dict.keys())
-  lines = ['| %s | %s |' % (key, str(hparams_dict[key])) for key in keys]
-  hparams_table = header + '\n'.join(lines) + '\n'
-
-  hparam_summary = tf.summary.text(
-      'hparams', tf.constant(hparams_table, name='hparams'), collections=[])
-
-  with tf.Session() as sess:
-    writer = tf.summary.FileWriter(output_dir, graph=sess.graph)
-    writer.add_summary(examples_path_summary.eval())
-    writer.add_summary(hparam_summary.eval())
-    writer.close()
-
-
-def _get_input_tensors(dataset, config):
-  """Get input tensors from dataset."""
-  batch_size = config.hparams.batch_size
-  iterator = tf.data.make_one_shot_iterator(dataset)
-  (input_sequence, output_sequence, control_sequence,
-   sequence_length) = iterator.get_next()
-  input_sequence.set_shape(
-      [batch_size, None, config.data_converter.input_depth])
-  output_sequence.set_shape(
-      [batch_size, None, config.data_converter.output_depth])
-  if not config.data_converter.control_depth:
-    control_sequence = None
-  else:
-    control_sequence.set_shape(
-        [batch_size, None, config.data_converter.control_depth])
-  sequence_length.set_shape([batch_size] + sequence_length.shape[1:].as_list())
-
-  return {
-      'input_sequence': input_sequence,
-      'output_sequence': output_sequence,
-      'control_sequence': control_sequence,
-      'sequence_length': sequence_length
-  }
-
-
 def train(train_dir,
           config,
-          trained_model,
+          checkpoint_path,
           dataset_fn,
           checkpoints_to_keep=5,
           keep_checkpoint_every_n_hours=1,
@@ -160,10 +114,10 @@ def train(train_dir,
     with tf.device(tf.train.replica_device_setter(
         num_ps_tasks, merge_devices=True)):
 
-      model = config.controller_model
+      model = config.model
       model.build(config.hparams,
-                  trained_model,
-                  config.data_converter.output_depth)
+                  config.data_converter.output_depth,
+                  is_training=False)
 
       optimizer = model.train(**_get_input_tensors(dataset_fn(), config))
 
@@ -174,7 +128,9 @@ def train(train_dir,
             num_sync_workers)
         hooks.append(optimizer.make_session_run_hook(is_chief))
 
-      grads, var_list = list(zip(*optimizer.compute_gradients(model.loss)))
+      grads, var_list = list(zip(*optimizer.compute_gradients(
+                                    model.loss,
+                                    tf.trainable_variables('controller'))))
       global_norm = tf.global_norm(grads)
       tf.summary.scalar('global_norm', global_norm)
 
@@ -202,7 +158,11 @@ def train(train_dir,
       if num_steps:
         hooks.append(tf.train.StopAtStepHook(last_step=num_steps))
 
+      variables_to_restore = tf_slim.get_variables_to_restore()
+      init_fn = tf_slim.assign_from_checkpoint_fn(checkpoint_path, variables_to_restore)
+
       scaffold = tf.train.Scaffold(
+          init_fn=init_fn,
           saver=tf.train.Saver(
               max_to_keep=checkpoints_to_keep,
               keep_checkpoint_every_n_hours=keep_checkpoint_every_n_hours))
@@ -214,39 +174,6 @@ def train(train_dir,
           save_checkpoint_secs=60,
           master=master,
           is_chief=is_chief)
-
-
-def evaluate(train_dir,
-             eval_dir,
-             config,
-             trained_model,
-             dataset_fn,
-             num_batches,
-             master=''):
-  """Evaluate the model repeatedly."""
-  tf.gfile.MakeDirs(eval_dir)
-
-  _trial_summary(
-      config.hparams, config.eval_examples_path or config.tfds_name, eval_dir)
-  with tf.Graph().as_default():
-    model = config.controller_model
-    model.build(config.hparams,
-                trained_model,
-                config.data_converter.output_depth)
-
-    eval_op = model.eval(
-        **_get_input_tensors(dataset_fn().take(num_batches), config))
-
-    hooks = [
-        tf_slim.evaluation.StopAfterNEvalsHook(num_batches),
-        tf_slim.evaluation.SummaryAtEndHook(eval_dir)
-    ]
-    tf_slim.evaluation.evaluate_repeatedly(
-        train_dir,
-        eval_ops=eval_op,
-        hooks=hooks,
-        eval_interval_secs=60,
-        master=master)
 
 
 def run(config_map,
@@ -263,7 +190,18 @@ def run(config_map,
   if not FLAGS.checkpoint_file:
     raise ValueError(
         '`--checkpoint_file` must be specified.')
-  checkpoint_dir_or_path = os.path.expanduser(FLAGS.checkpoint_file)
+  checkpoint_path = os.path.expanduser(FLAGS.checkpoint_file)
+  if (os.path.exists(checkpoint_path) and
+      tarfile.is_tarfile(checkpoint_path)):
+    tf.logging.info('Unbundling checkpoint.')
+    with tempfile.TemporaryDirectory() as temp_dir:
+      tar = tarfile.open(checkpoint_path)
+      tar.extractall(temp_dir)
+      # Assume only a single checkpoint is in the directory.
+      for name in tar.getnames():
+        if name.endswith('.index'):
+          checkpoint_path = os.path.join(temp_dir, name[0:-6])
+          break
 
   if not FLAGS.run_dir:
     raise ValueError('Invalid run directory: %s' % FLAGS.run_dir)
@@ -289,7 +227,7 @@ def run(config_map,
     config_update_map['tfds_name'] = FLAGS.tfds_name
     config_update_map['eval_examples_path'] = None
     config_update_map['train_examples_path'] = None
-  config = configs.update_config(config, config_update_map)
+  config = update_config(config, config_update_map)
   if FLAGS.num_sync_workers:
     config.hparams.batch_size //= FLAGS.num_sync_workers
 
@@ -299,10 +237,6 @@ def run(config_map,
     is_training = False
   else:
     raise ValueError('Invalid mode: {}'.format(FLAGS.mode))
-
-  trained_model = TrainedModel(
-      config, batch_size=config.hparams.batch_size,
-      checkpoint_dir_or_path=checkpoint_dir_or_path)
 
   def dataset_fn():
     return data.get_dataset(
@@ -315,7 +249,7 @@ def run(config_map,
     train(
         train_dir,
         config=config,
-        trained_model=trained_model,
+        checkpoint_path=checkpoint_path,
         dataset_fn=dataset_fn,
         checkpoints_to_keep=FLAGS.checkpoints_to_keep,
         keep_checkpoint_every_n_hours=FLAGS.keep_checkpoint_every_n_hours,
@@ -335,7 +269,6 @@ def run(config_map,
         train_dir,
         eval_dir,
         config=config,
-        trained_model=trained_model,
         dataset_fn=dataset_fn,
         num_batches=num_batches,
         master=FLAGS.master)

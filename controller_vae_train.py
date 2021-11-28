@@ -21,9 +21,6 @@ import tempfile
 import controller_vae_configs as configs
 from magenta.models.music_vae import update_config
 from magenta.models.music_vae import data
-from magenta.models.music_vae.music_vae_train import _trial_summary
-from magenta.models.music_vae.music_vae_train import _get_input_tensors
-from magenta.models.music_vae.music_vae_train import evaluate
 import tensorflow.compat.v1 as tf
 import tf_slim
 
@@ -90,6 +87,57 @@ flags.DEFINE_string(
     'log', 'INFO',
     'The threshold for what messages will be logged: '
     'DEBUG, INFO, WARN, ERROR, or FATAL.')
+
+
+# Should not be called from within the graph to avoid redundant summaries.
+def _trial_summary(hparams, examples_path, output_dir):
+  """Writes a tensorboard text summary of the trial."""
+
+  examples_path_summary = tf.summary.text(
+      'examples_path', tf.constant(examples_path, name='examples_path'),
+      collections=[])
+
+  hparams_dict = hparams.values()
+
+  # Create a markdown table from hparams.
+  header = '| Key | Value |\n| :--- | :--- |\n'
+  keys = sorted(hparams_dict.keys())
+  lines = ['| %s | %s |' % (key, str(hparams_dict[key])) for key in keys]
+  hparams_table = header + '\n'.join(lines) + '\n'
+
+  hparam_summary = tf.summary.text(
+      'hparams', tf.constant(hparams_table, name='hparams'), collections=[])
+
+  with tf.Session() as sess:
+    writer = tf.summary.FileWriter(output_dir, graph=sess.graph)
+    writer.add_summary(examples_path_summary.eval())
+    writer.add_summary(hparam_summary.eval())
+    writer.close()
+
+
+def _get_input_tensors(dataset, config):
+  """Get input tensors from dataset."""
+  batch_size = config.hparams.batch_size
+  iterator = tf.data.make_one_shot_iterator(dataset)
+  (input_sequence, output_sequence, control_sequence,
+   sequence_length) = iterator.get_next()
+  input_sequence.set_shape(
+      [batch_size, None, config.data_converter.input_depth])
+  output_sequence.set_shape(
+      [batch_size, None, config.data_converter.output_depth])
+  if not config.data_converter.control_depth:
+    control_sequence = None
+  else:
+    control_sequence.set_shape(
+        [batch_size, None, config.data_converter.control_depth])
+  sequence_length.set_shape([batch_size] + sequence_length.shape[1:].as_list())
+
+  return {
+      'input_sequence': input_sequence,
+      'output_sequence': output_sequence,
+      'control_sequence': control_sequence,
+      'sequence_length': sequence_length
+  }
 
 
 def train(train_dir,
@@ -174,6 +222,38 @@ def train(train_dir,
           save_checkpoint_secs=60,
           master=master,
           is_chief=is_chief)
+
+
+def evaluate(train_dir,
+             eval_dir,
+             config,
+             dataset_fn,
+             num_batches,
+             master=''):
+  """Evaluate the model repeatedly."""
+  tf.gfile.MakeDirs(eval_dir)
+
+  _trial_summary(
+      config.hparams, config.eval_examples_path or config.tfds_name, eval_dir)
+  with tf.Graph().as_default():
+    model = config.model
+    model.build(config.hparams,
+                config.data_converter.output_depth,
+                is_training=False)
+
+    eval_op = model.eval(
+        **_get_input_tensors(dataset_fn().take(num_batches), config))
+
+    hooks = [
+        tf_slim.evaluation.StopAfterNEvalsHook(num_batches),
+        tf_slim.evaluation.SummaryAtEndHook(eval_dir)
+    ]
+    tf_slim.evaluation.evaluate_repeatedly(
+        train_dir,
+        eval_ops=eval_op,
+        hooks=hooks,
+        eval_interval_secs=60,
+        master=master)
 
 
 def run(config_map,

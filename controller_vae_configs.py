@@ -17,6 +17,7 @@
 import collections
 
 from magenta.common import merge_hparams
+from magenta.common import flatten_maybe_padded_sequences
 from magenta.contrib import training as contrib_training
 from magenta.models.music_vae import data
 import MusicVAE.lstm_models as lstm_models
@@ -97,10 +98,29 @@ class ControllerVAE(MusicVAE):
       def build(self, model, hparams, output_depth, is_training=False):
         super().build(hparams, output_depth, is_training)
         self._model = model
+        self._hparams = hparams
 
       def reconstruction_loss(self, x_input, x_target, x_length, z=None,
                               c_input=None):
-        pass
+        decode_results = self._model.decode_to_tensors(
+                              z, self._hparams.max_seq_len,
+                              c_input=c_input, return_full_results=True)
+        flat_x_target = flatten_maybe_padded_sequences(x_target, x_length)
+        flat_rnn_output = flatten_maybe_padded_sequences(
+            decode_results.rnn_output, x_length)
+        r_loss, metric_map = self._flat_reconstruction_loss(
+            flat_x_target, flat_rnn_output)
+
+        batch_size = int(x_input.shape[0])
+        # Sum loss over sequences.
+        cum_x_len = tf.concat([(0,), tf.cumsum(x_length)], axis=0)
+        r_losses = []
+        for i in range(batch_size):
+          b, e = cum_x_len[i], cum_x_len[i + 1]
+          r_losses.append(tf.reduce_sum(r_loss[b:e]))
+        r_loss = tf.stack(r_losses)
+
+        return r_loss, metric_map, decode_results
 
       def sample(self, n, max_length=None, z=None, c_input=None):
         pass

@@ -205,8 +205,10 @@ def train(train_dir,
         hooks.append(tf.train.StopAtStepHook(last_step=num_steps))
 
       variables_to_restore = tf_slim.get_variables_to_restore()
-      saver = tf.train.Saver(variables_to_restore)
-      init_fn = lambda scaffold, session: saver.restore(session, checkpoint_path)
+      ckpt_fn = tf_slim.assign_from_checkpoint_fn(checkpoint_path,
+                                                  variables_to_restore,
+                                                  ignore_missing_vars=True)
+      init_fn = lambda scaffold, session: ckpt_fn(session)
 
       scaffold = tf.train.Scaffold(
           init_fn=init_fn,

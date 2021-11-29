@@ -29,8 +29,8 @@ flags.DEFINE_string(
     'master', '',
     'The TensorFlow master to use.')
 flags.DEFINE_string(
-    'checkpoint_file', None,
-    'Path to the checkpoint file.')
+    'checkpoint_dir', None,
+    'Path to the checkpoint directory.')
 flags.DEFINE_string(
     'examples_path', None,
     'Path to a TFRecord file of NoteSequence examples. Overrides the config.')
@@ -268,11 +268,13 @@ def run(config_map,
   Raises:
     ValueError: if required flags are missing or invalid.
   """
-  if not FLAGS.checkpoint_file:
+  if not FLAGS.checkpoint_dir:
     raise ValueError(
-        '`--checkpoint_file` must be specified.')
-  checkpoint_path = os.path.expanduser(FLAGS.checkpoint_file)
-  if not tf.gfile.IsDirectory(checkpoint_path):
+        '`--checkpoint_dir` must be specified.')
+  checkpoint_dir = os.path.expanduser(FLAGS.checkpoint_dir)
+  if tf.gfile.IsDirectory(checkpoint_dir):
+    checkpoint_path = tf.train.latest_checkpoint(checkpoint_dir)
+  else:
     raise ValueError(
         'Path must be to a directory.'
         'If it is a compressed file, extract it.')

@@ -272,15 +272,13 @@ def run(config_map,
     raise ValueError(
         '`--checkpoint_dir` must be specified.')
   checkpoint_dir = os.path.expanduser(FLAGS.checkpoint_dir)
-  if tf.gfile.IsDirectory(checkpoint_dir):
-    checkpoint_path = tf.train.latest_checkpoint(checkpoint_dir)
-  else:
+  if not tf.gfile.IsDirectory(checkpoint_dir):
     raise ValueError(
         'Path must be to a directory.'
         'If it is a compressed file, extract it.')
-  for file in os.listdir(checkpoint_path):
+  for file in os.listdir(checkpoint_dir):
     if file.endswith('.index'):
-      checkpoint_path = os.path.join(checkpoint_path, file[0:-6])
+      checkpoint_path = os.path.join(checkpoint_dir, file[0:-6])
 
   if not FLAGS.run_dir:
     raise ValueError('Invalid run directory: %s' % FLAGS.run_dir)

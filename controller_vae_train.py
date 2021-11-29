@@ -281,7 +281,7 @@ def run(config_map,
       # Assume only a single checkpoint is in the directory.
       for name in tar.getnames():
         if name.endswith('.index'):
-          checkpoint_path = os.path.join(temp_dir, name[0:-6])
+          checkpoint_path = os.path.join(temp_dir, name)
           break
 
   if not FLAGS.run_dir:

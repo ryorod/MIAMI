@@ -143,6 +143,7 @@ def _get_input_tensors(dataset, config):
 def train(train_dir,
           config,
           checkpoint_path,
+          checkpoint_name,
           dataset_fn,
           checkpoints_to_keep=5,
           keep_checkpoint_every_n_hours=1,
@@ -208,7 +209,7 @@ def train(train_dir,
 
       variables_to_restore = tf_slim.get_variables_to_restore()
       saver = tf.train.Saver(variables_to_restore)
-      path = tf.train.get_checkpoint_state(checkpoint_path)
+      path = tf.train.get_checkpoint_state(checkpoint_path, checkpoint_name)
       init_fn = lambda scaffold, session: saver.restore(session, path.model_checkpoint_path)
 
       scaffold = tf.train.Scaffold(
@@ -280,6 +281,11 @@ def run(config_map,
       tar = tarfile.open(checkpoint_path)
       tar.extractall(temp_dir)
       checkpoint_path = temp_dir
+      # Assume only a single checkpoint is in the directory.
+      for name in tar.getnames():
+        if name.endswith('.index'):
+          checkpoint_name = name[0:-6]
+          break
 
   if not FLAGS.run_dir:
     raise ValueError('Invalid run directory: %s' % FLAGS.run_dir)
@@ -328,6 +334,7 @@ def run(config_map,
         train_dir,
         config=config,
         checkpoint_path=checkpoint_path,
+        checkpoint_name=checkpoint_name,
         dataset_fn=dataset_fn,
         checkpoints_to_keep=FLAGS.checkpoints_to_keep,
         keep_checkpoint_every_n_hours=FLAGS.keep_checkpoint_every_n_hours,

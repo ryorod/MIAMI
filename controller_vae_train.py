@@ -208,7 +208,8 @@ def train(train_dir,
 
       variables_to_restore = tf_slim.get_variables_to_restore()
       saver = tf.train.Saver(variables_to_restore)
-      init_fn = lambda scaffold, session: saver.restore(session, checkpoint_path)
+      path = tf.train.get_checkpoint_state(checkpoint_path)
+      init_fn = lambda scaffold, session: saver.restore(session, path.model_checkpoint_path)
 
       scaffold = tf.train.Scaffold(
           init_fn=init_fn,
@@ -278,11 +279,7 @@ def run(config_map,
     with tempfile.TemporaryDirectory() as temp_dir:
       tar = tarfile.open(checkpoint_path)
       tar.extractall(temp_dir)
-      # Assume only a single checkpoint is in the directory.
-      for name in tar.getnames():
-        if name.endswith('.index'):
-          checkpoint_path = os.path.join(temp_dir, name)
-          break
+      checkpoint_path = temp_dir
 
   if not FLAGS.run_dir:
     raise ValueError('Invalid run directory: %s' % FLAGS.run_dir)

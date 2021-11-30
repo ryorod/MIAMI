@@ -35,8 +35,13 @@ class ControllerVAE(MusicVAE):
   """Reduced-Dimensional Variational Autoencoder for controlling the original MusicVAE."""
 
   def build(self, hparams, output_depth, is_training=False):
-    super().build(hparams, output_depth, is_training)
+    tf.logging.info('Building MusicVAE model with %s, %s, and hparams:\n%s',
+                    self.encoder.__class__.__name__,
+                    self.decoder.__class__.__name__, hparams.values())
     self.global_step = tf.train.create_global_step()
+    self._hparams = hparams
+    self._encoder.build(hparams, is_training)
+    self._decoder.build(hparams, output_depth, is_training)
 
 
   def encode(self, sequence, sequence_length, control_sequence=None):

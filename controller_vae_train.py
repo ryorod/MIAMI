@@ -13,11 +13,11 @@
 # limitations under the License.
 
 # Lint as: python3
-"""MusicVAE training script."""
+"""ControllerVAE training script."""
 import os
 
-# update
-import configs
+import controller_vae_configs as configs
+from magenta.models.music_vae import update_config
 from magenta.models.music_vae import data
 import tensorflow.compat.v1 as tf
 import tf_slim
@@ -28,6 +28,9 @@ FLAGS = flags.FLAGS
 flags.DEFINE_string(
     'master', '',
     'The TensorFlow master to use.')
+flags.DEFINE_string(
+    'checkpoint_dir', None,
+    'Path to the checkpoint directory.')
 flags.DEFINE_string(
     'examples_path', None,
     'Path to a TFRecord file of NoteSequence examples. Overrides the config.')
@@ -40,7 +43,7 @@ flags.DEFINE_string(
     'training and evaluation. Separate subdirectories `train` and `eval` '
     'will be created within this directory.')
 flags.DEFINE_integer(
-    'num_steps', 200000,
+    'num_steps', 500000,
     'Number of training steps or `None` for infinite.')
 flags.DEFINE_integer(
     'eval_num_batches', None,
@@ -137,6 +140,7 @@ def _get_input_tensors(dataset, config):
 
 def train(train_dir,
           config,
+          checkpoint_path,
           dataset_fn,
           checkpoints_to_keep=5,
           keep_checkpoint_every_n_hours=1,
@@ -158,8 +162,7 @@ def train(train_dir,
 
       model = config.model
       model.build(config.hparams,
-                  config.data_converter.output_depth,
-                  is_training=True)
+                  config.data_converter.output_depth)
 
       optimizer = model.train(**_get_input_tensors(dataset_fn(), config))
 
@@ -170,7 +173,9 @@ def train(train_dir,
             num_sync_workers)
         hooks.append(optimizer.make_session_run_hook(is_chief))
 
-      grads, var_list = list(zip(*optimizer.compute_gradients(model.loss)))
+      grads, var_list = list(zip(*optimizer.compute_gradients(
+                                    model.loss,
+                                    tf.trainable_variables('controller'))))
       global_norm = tf.global_norm(grads)
       tf.summary.scalar('global_norm', global_norm)
 
@@ -198,7 +203,14 @@ def train(train_dir,
       if num_steps:
         hooks.append(tf.train.StopAtStepHook(last_step=num_steps))
 
+      variables_to_restore = tf_slim.get_variables_to_restore()
+      ckpt_fn = tf_slim.assign_from_checkpoint_fn(checkpoint_path,
+                                                  variables_to_restore,
+                                                  ignore_missing_vars=True)
+      init_fn = lambda scaffold, session: ckpt_fn(session)
+
       scaffold = tf.train.Scaffold(
+          init_fn=init_fn,
           saver=tf.train.Saver(
               max_to_keep=checkpoints_to_keep,
               keep_checkpoint_every_n_hours=keep_checkpoint_every_n_hours))
@@ -226,8 +238,7 @@ def evaluate(train_dir,
   with tf.Graph().as_default():
     model = config.model
     model.build(config.hparams,
-                config.data_converter.output_depth,
-                is_training=False)
+                config.data_converter.output_depth)
 
     eval_op = model.eval(
         **_get_input_tensors(dataset_fn().take(num_batches), config))
@@ -248,15 +259,25 @@ def run(config_map,
         tf_file_reader=tf.data.TFRecordDataset,
         file_reader=tf.python_io.tf_record_iterator):
   """Load model params, save config file and start trainer.
-
   Args:
     config_map: Dictionary mapping configuration name to Config object.
     tf_file_reader: The tf.data.Dataset class to use for reading files.
     file_reader: The Python reader to use for reading files.
-
   Raises:
     ValueError: if required flags are missing or invalid.
   """
+  if not FLAGS.checkpoint_dir:
+    raise ValueError(
+        '`--checkpoint_dir` must be specified.')
+  checkpoint_dir = os.path.expanduser(FLAGS.checkpoint_dir)
+  if not tf.gfile.IsDirectory(checkpoint_dir):
+    raise ValueError(
+        'Path must be to a directory.'
+        'If it is a compressed file, extract it.')
+  for file in os.listdir(checkpoint_dir):
+    if file.endswith('.index'):
+      checkpoint_path = os.path.join(checkpoint_dir, file[0:-6])
+
   if not FLAGS.run_dir:
     raise ValueError('Invalid run directory: %s' % FLAGS.run_dir)
   run_dir = os.path.expanduser(FLAGS.run_dir)
@@ -281,7 +302,7 @@ def run(config_map,
     config_update_map['tfds_name'] = FLAGS.tfds_name
     config_update_map['eval_examples_path'] = None
     config_update_map['train_examples_path'] = None
-  config = configs.update_config(config, config_update_map)
+  config = update_config(config, config_update_map)
   if FLAGS.num_sync_workers:
     config.hparams.batch_size //= FLAGS.num_sync_workers
 
@@ -303,6 +324,7 @@ def run(config_map,
     train(
         train_dir,
         config=config,
+        checkpoint_path=checkpoint_path,
         dataset_fn=dataset_fn,
         checkpoints_to_keep=FLAGS.checkpoints_to_keep,
         keep_checkpoint_every_n_hours=FLAGS.keep_checkpoint_every_n_hours,

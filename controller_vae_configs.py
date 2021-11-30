@@ -41,13 +41,12 @@ class ControllerVAE(MusicVAE):
     tf.logging.info('Building MusicVAE model with %s, %s, and hparams:\n%s',
                     self.encoder.__class__.__name__,
                     self.decoder.__class__.__name__, hparams.values())
-    self.global_step = tf.train.create_global_step()
+    step = variable_scope.get_variable(ops.GraphKeys.GLOBAL_STEP)
+    print(step)
+    # self.global_step = tf.train.create_global_step()
     self._hparams = hparams
     self._encoder.build(hparams, is_training)
     self._decoder.build(hparams, output_depth, is_training)
-
-    step = variable_scope.get_variable(ops.GraphKeys.GLOBAL_STEP)
-    print(step)
 
 
   def encode(self, sequence, sequence_length, control_sequence=None):

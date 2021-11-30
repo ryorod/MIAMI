@@ -36,9 +36,9 @@ CONFIG_MAP['cat-drums_2bar_small_3dim'] = Config(
         HParams(
             batch_size=512,
             max_seq_len=32,  # 2 bars w/ 16 steps per bar
-            z_size=3,
-            intermediate_size=[128],
             original_z_size=256,
+            intermediate_size=[128],
+            z_size=3,
             enc_rnn_size=[512],
             dec_rnn_size=[256, 256],
             free_bits=48,
@@ -52,6 +52,36 @@ CONFIG_MAP['cat-drums_2bar_small_3dim'] = Config(
         slice_bars=2,
         steps_per_quarter=4,
         roll_input=True),
+    train_examples_path=None,
+    eval_examples_path=None,
+)
+
+CONFIG_MAP['cat-mel_2bar_big_3dim'] = Config(
+    model=ControllerVAE(lstm_models.BidirectionalLstmEncoder(),
+                        lstm_models.CategoricalLstmDecoder()),
+    hparams=merge_hparams(
+        lstm_models.get_default_hparams(),
+        HParams(
+            batch_size=512,
+            max_seq_len=32,  # 2 bars w/ 16 steps per bar
+            original_z_size=512,
+            intermediate_size=[256, 128],
+            z_size=3,
+            enc_rnn_size=[2048],
+            dec_rnn_size=[2048, 2048, 2048],
+            free_bits=0,
+            max_beta=0.5,
+            beta_rate=0.99999,
+            sampling_schedule='inverse_sigmoid',
+            sampling_rate=1000,
+        )),
+    note_sequence_augmenter=data.NoteSequenceAugmenter(transpose_range=(-5, 5)),
+    data_converter=data.OneHotMelodyConverter(
+        valid_programs=data.MEL_PROGRAMS,
+        skip_polyphony=False,
+        max_bars=100,  # Truncate long melodies before slicing.
+        slice_bars=2,
+        steps_per_quarter=4),
     train_examples_path=None,
     eval_examples_path=None,
 )

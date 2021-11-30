@@ -20,6 +20,7 @@ from magenta.contrib import training as contrib_training
 from magenta.models.music_vae import data
 from magenta.models.music_vae import lstm_models
 from magenta.models.music_vae import Config
+from controller_vae_model import ControllerVAE
 
 HParams = contrib_training.HParams
 

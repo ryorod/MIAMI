@@ -22,6 +22,8 @@ from magenta.models.music_vae import data
 import tensorflow.compat.v1 as tf
 import tf_slim
 
+from tensorflow.python.framework import ops
+
 flags = tf.app.flags
 FLAGS = flags.FLAGS
 
@@ -222,6 +224,10 @@ def train(train_dir,
           save_checkpoint_secs=60,
           master=master,
           is_chief=is_chief)
+
+      graph = ops.get_default_graph()
+      global_step_tensors = graph.get_collection(ops.GraphKeys.GLOBAL_STEP)
+      print(global_step_tensors)
 
 
 def evaluate(train_dir,

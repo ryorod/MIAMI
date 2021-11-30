@@ -162,8 +162,7 @@ def train(train_dir,
 
       model = config.model
       model.build(config.hparams,
-                  config.data_converter.output_depth,
-                  is_training=False)
+                  config.data_converter.output_depth)
 
       optimizer = model.train(**_get_input_tensors(dataset_fn(), config))
 
@@ -239,8 +238,7 @@ def evaluate(train_dir,
   with tf.Graph().as_default():
     model = config.model
     model.build(config.hparams,
-                config.data_converter.output_depth,
-                is_training=False)
+                config.data_converter.output_depth)
 
     eval_op = model.eval(
         **_get_input_tensors(dataset_fn().take(num_batches), config))

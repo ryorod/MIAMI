@@ -34,6 +34,11 @@ CONFIG_MAP = {}
 class ControllerVAE(MusicVAE):
   """Reduced-Dimensional Variational Autoencoder for controlling the original MusicVAE."""
 
+  def build(self, hparams, output_depth, is_training=False):
+    super().build(hparams, output_depth, is_training)
+    self.global_step = tf.train.create_global_step()
+
+
   def encode(self, sequence, sequence_length, control_sequence=None):
     hparams = self.hparams
     z_size = hparams.z_size

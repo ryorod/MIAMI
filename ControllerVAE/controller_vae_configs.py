@@ -197,7 +197,7 @@ class ControllerVAE(MusicVAE):
 
 CONFIG_MAP['cat-drums_2bar_small_3dim'] = Config(
     model=ControllerVAE(lstm_models.BidirectionalLstmEncoder(),
-                                   lstm_models.CategoricalLstmDecoder()),
+                        lstm_models.CategoricalLstmDecoder()),
     hparams=merge_hparams(
         lstm_models.get_default_hparams(),
         HParams(

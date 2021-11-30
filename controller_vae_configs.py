@@ -24,6 +24,9 @@ from magenta.models.music_vae import MusicVAE
 import tensorflow.compat.v1 as tf
 import tensorflow_probability as tfp
 
+from tensorflow.python.framework import ops
+from tensorflow.python.ops import variable_scope
+
 HParams = contrib_training.HParams
 ds = tfp.distributions
 
@@ -42,6 +45,9 @@ class ControllerVAE(MusicVAE):
     self._hparams = hparams
     self._encoder.build(hparams, is_training)
     self._decoder.build(hparams, output_depth, is_training)
+
+    step = variable_scope.get_variable(ops.GraphKeys.GLOBAL_STEP)
+    print(step)
 
 
   def encode(self, sequence, sequence_length, control_sequence=None):

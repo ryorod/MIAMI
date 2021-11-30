@@ -48,6 +48,7 @@ class ControllerVAE(MusicVAE):
 
     step = ops.GraphKeys.GLOBAL_STEP
     print(step)
+    print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
 
 
   def encode(self, sequence, sequence_length, control_sequence=None):

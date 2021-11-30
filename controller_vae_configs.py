@@ -24,9 +24,6 @@ from magenta.models.music_vae import MusicVAE
 import tensorflow.compat.v1 as tf
 import tensorflow_probability as tfp
 
-from tensorflow.python.framework import ops
-from tensorflow.python.ops import variable_scope
-
 HParams = contrib_training.HParams
 ds = tfp.distributions
 
@@ -38,31 +35,7 @@ class ControllerVAE(MusicVAE):
   """Reduced-Dimensional Variational Autoencoder for controlling the original MusicVAE."""
 
   def build(self, hparams, output_depth, is_training=False):
-    tf.logging.info('Building MusicVAE model with %s, %s, and hparams:\n%s',
-                    self.encoder.__class__.__name__,
-                    self.decoder.__class__.__name__, hparams.values())
-    self.global_step = tf.train.create_global_step()
-    self._hparams = hparams
-    self._encoder.build(hparams, is_training)
-    self._decoder.build(hparams, output_depth, is_training)
-
-    graph = ops.get_default_graph()
-    global_step_tensor = None
-    global_step_tensors = graph.get_collection(ops.GraphKeys.GLOBAL_STEP)
-    if len(global_step_tensors) == 1:
-      global_step_tensor = global_step_tensors[0]
-    elif not global_step_tensors:
-      try:
-        global_step_tensor = graph.get_tensor_by_name('global_step:0')
-      except KeyError:
-        return None
-    else:
-      tf.logging.error('Multiple tensors in global_step collection.')
-      return None
-
-    print(global_step_tensors)
-    print(global_step_tensor)
-    print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+    super().build(hparams, output_depth, is_training)
 
 
   def encode(self, sequence, sequence_length, control_sequence=None):

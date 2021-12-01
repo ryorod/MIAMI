@@ -1,0 +1,7 @@
+midi_output_dir: '/Users/atsuya/Documents/cclab/MixedReality-x-music-generation/server/sample_midi_data'
+osc:
+  send_address: localhost
+  receive_address: 10.0.1.12
+  send_port: 7878
+  receive_port: 5656
+model_path_vae: '/Users/atsuya/Documents/cclab/MixedReality-x-music-generation/server/model_file/cat-mel_2bar_big.ckpt'

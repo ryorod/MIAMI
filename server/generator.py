@@ -8,7 +8,6 @@ from typing import Any, List, Optional
 
 import numpy as np
 import yaml
-import ControllerVAE.controller_vae_configs as configs
 from magenta.models.music_vae.trained_model import TrainedModel
 from magenta.models.shared import sequence_generator_bundle
 from note_seq import sequence_proto_to_midi_file
@@ -20,6 +19,10 @@ warnings.simplefilter('ignore')
 with open(os.path.join(os.path.dirname(__file__),
                        "..", "config.yml"), 'r') as yml:
     CONFIG = yaml.safe_load(yml)
+
+import sys
+sys.path.append('../')
+from ControllerVAE import controller_vae_configs as configs
 
 
 def create_note_seq(notes: List[int],

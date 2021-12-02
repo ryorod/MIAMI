@@ -10,7 +10,7 @@ import yaml
 from note_seq.protobuf.music_pb2 import NoteSequence
 
 from converter import ReceivedNotesManager
-from event_handlers import (continue_generation_func, on_output_midi_file_func,
+from event_handlers import (on_output_midi_file_func,
                             on_output_note_sequence_func)
 from generator import MusicVAEModel
 from osc import OSCSender, OSCServer
@@ -60,13 +60,9 @@ if __name__ == "__main__":
         server.data_manager.on_output_midi = on_output_midi_file_func(sender)
         server.data_manager.on_output = on_output_note_sequence_func(
             vae, osc_sender=sender)
-        server.on_trigger_continuous_generate = continue_generation_func(
-            vae, osc_sender=sender)
     else:  # run this from nodejs runtime on Max for Live Device
         server.data_manager.on_output_midi = on_output_midi_file_func()
         server.data_manager.on_output = on_output_note_sequence_func(
-            vae)
-        server.on_trigger_continuous_generate = continue_generation_func(
             vae)
     print("Starting server process...")
     server.run(single_thread=True)

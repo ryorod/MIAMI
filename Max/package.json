@@ -1,0 +1,19 @@
+{
+  "name": "music-gen-2021-max-clip-importer",
+  "version": "1.0.0",
+  "description": "",
+  "main": "run_server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Atsuya Kobayashi",
+  "license": "ISC",
+  "engines": {
+    "node": "12.14.1"
+  },
+  "dependencies": {
+    "fs": "^0.0.1-security",
+    "js-yaml": "^4.1.0",
+    "python-shell": "^3.0.0"
+  }
+}

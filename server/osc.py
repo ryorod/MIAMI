@@ -60,6 +60,7 @@ class OSCServer:
             if callable(self.data_manager.receive):
                 xyz = self.parse_message(args)
                 xyz_ndarray = np.array(xyz, dtype=np.float32).reshape([1, 3])
+                xyz_ndarray = np.dot(xyz_ndarray, 10)
 
                 self.data_manager.receive(xyz_ndarray)
 

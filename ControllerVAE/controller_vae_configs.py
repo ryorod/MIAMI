@@ -20,6 +20,7 @@ from magenta.contrib import training as contrib_training
 from magenta.models.music_vae import data
 from magenta.models.music_vae import lstm_models
 from magenta.models.music_vae import Config
+from magenta.models.music_vae.configs import trio_16bar_converter
 from ControllerVAE.controller_vae_model import ControllerVAE
 
 HParams = contrib_training.HParams
@@ -82,6 +83,41 @@ CONFIG_MAP['cat-mel_2bar_big_3dim'] = Config(
         max_bars=100,  # Truncate long melodies before slicing.
         slice_bars=2,
         steps_per_quarter=4),
+    train_examples_path=None,
+    eval_examples_path=None,
+)
+
+CONFIG_MAP['hierdec-trio_16bar_3dim'] = Config(
+    model=ControllerVAE(
+        lstm_models.BidirectionalLstmEncoder(),
+        lstm_models.HierarchicalLstmDecoder(
+            lstm_models.SplitMultiOutLstmDecoder(
+                core_decoders=[
+                    lstm_models.CategoricalLstmDecoder(),
+                    lstm_models.CategoricalLstmDecoder(),
+                    lstm_models.CategoricalLstmDecoder()],
+                output_depths=[
+                    90,  # melody
+                    90,  # bass
+                    512,  # drums
+                ]),
+            level_lengths=[16, 16],
+            disable_autoregression=True)),
+    hparams=merge_hparams(
+        lstm_models.get_default_hparams(),
+        HParams(
+            batch_size=256,
+            max_seq_len=256,
+            original_z_size=512,
+            intermediate_size=[256, 128],
+            z_size=3,
+            enc_rnn_size=[2048, 2048],
+            dec_rnn_size=[1024, 1024],
+            free_bits=256,
+            max_beta=0.2,
+        )),
+    note_sequence_augmenter=None,
+    data_converter=trio_16bar_converter,
     train_examples_path=None,
     eval_examples_path=None,
 )

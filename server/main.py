@@ -49,7 +49,7 @@ if __name__ == "__main__":
     server = OSCServer(args.receive_address, args.receive_port)
     server.data_manager = ReceivedNotesManager()
     # TODO: hard coded send port num, change it
-    server.bypass_sender = OSCSender(args.send_address, 6565)
+    # server.bypass_sender = OSCSender(args.send_address, 6565)
     vae = MusicVAEModel(CONFIG["model_path_vae"])
     vae.load_model()
 

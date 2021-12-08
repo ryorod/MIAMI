@@ -23,8 +23,11 @@ with open(os.path.join(os.path.dirname(__file__), "..", "config.yml"), 'r') as y
 class OSCServer:
     def __init__(self, ip: str, port: int, timeout_seconds=10) -> None:
 
-        self.notes_address = "/z"  # receive each single note from MR space
-        self.continuous_generate_address = "/generate"  # grigger continuous generation
+        self.address_z_all = "/z_all"
+        self.address_z_mel = "/z_mel"
+        self.address_z_bass = "/z_bass"
+        self.address_z_drums = "/z_drums"
+
         self.ip = ip
         self.port = port
         # self.timeout = timeout_seconds
@@ -34,10 +37,7 @@ class OSCServer:
         #     int, datetime, int, float], Any]] = None
         self.server: Optional[BlockingOSCUDPServer] = None
 
-        self.on_trigger_continuous_generate: Optional[Callable[[
-            str, list, dict], None]] = None  # inject closure after initialize
-
-        self.bypass_sender: Optional[OSCSender] = None
+        # self.bypass_sender: Optional[OSCSender] = None
 
     def parse_message(self, input_args: str) -> List[str]:
         expected_arg_length = 3
@@ -53,8 +53,8 @@ class OSCServer:
         # for el in values:
         #     print('\t', el)
 
-        if self.bypass_sender:
-            self.bypass_sender.send(self.notes_address, args)
+        # if self.bypass_sender:
+        #     self.bypass_sender.send(self.notes_address, args)
 
         if self.data_manager:
             if callable(self.data_manager.receive):
@@ -69,11 +69,8 @@ class OSCServer:
 
         try:
             # register receive notes event callback
-            self.dispatcher.map(self.notes_address, self._on_received)
-            # register continuous generation event callback
-            if self.on_trigger_continuous_generate:
-                self.dispatcher.map(self.continuous_generate_address,
-                                    self.on_trigger_continuous_generate)
+            self.dispatcher.map(self.address_z_all, self._on_received)
+
             self.server = BlockingOSCUDPServer(
                 (self.ip, self.port), self.dispatcher)
 

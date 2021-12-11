@@ -106,7 +106,12 @@ def _trial_summary(hparams, examples_path, output_dir):
   hparam_summary = tf.summary.text(
       'hparams', tf.constant(hparams_table, name='hparams'), collections=[])
 
-  with tf.Session() as sess:
+  session_config = tf.ConfigProto(
+        gpu_options=tf.GPUOptions(
+          visible_device_list='0',
+          allow_growth=True))
+
+  with tf.Session(config=session_config) as sess:
     writer = tf.summary.FileWriter(output_dir, graph=sess.graph)
     writer.add_summary(examples_path_summary.eval())
     writer.add_summary(hparam_summary.eval())
@@ -219,9 +224,7 @@ def train(train_dir,
       session_config = tf.ConfigProto(
         gpu_options=tf.GPUOptions(
           visible_device_list='0',
-          allow_growth=True
-        )
-      )
+          allow_growth=True))
 
       scaffold = tf.train.Scaffold(
           init_fn=init_fn,

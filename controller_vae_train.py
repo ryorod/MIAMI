@@ -22,8 +22,6 @@ from magenta.models.music_vae import data
 import tensorflow.compat.v1 as tf
 import tf_slim
 
-from tensorflow.python.framework import ops
-
 flags = tf.app.flags
 FLAGS = flags.FLAGS
 
@@ -198,20 +196,10 @@ def train(train_dir,
       else:
         raise ValueError(
             'Unknown clip_mode: {}'.format(config.hparams.clip_mode))
-      # train_op = optimizer.apply_gradients(
-      #     list(zip(clipped_grads, var_list)),
-      #     global_step=model.global_step,
-      #     name='train_step')
-
-      def op():
-            r = optimizer.apply_gradients(
-              list(zip(clipped_grads, var_list)),
-              global_step=model.global_step,
-              name='train_step')
-            print('saveable!!!!!!!!!!!!!!!!')
-            print(tf_slim.get_variables(collection=ops.GraphKeys.SAVEABLE_OBJECTS))
-            return r
-      train_op = op()
+      train_op = optimizer.apply_gradients(
+          list(zip(clipped_grads, var_list)),
+          global_step=model.global_step,
+          name='train_step')
 
       logging_dict = {'global_step': model.global_step,
                       'loss': model.loss}
@@ -234,6 +222,7 @@ def train(train_dir,
       scaffold = tf.train.Scaffold(
           init_fn=init_fn,
           saver=tf.train.Saver(
+              var_list=tf.global_variables(),
               max_to_keep=checkpoints_to_keep,
               keep_checkpoint_every_n_hours=keep_checkpoint_every_n_hours))
       tf_slim.training.train(

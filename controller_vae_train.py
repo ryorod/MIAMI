@@ -216,6 +216,13 @@ def train(train_dir,
                                                   ignore_missing_vars=True)
       init_fn = lambda scaffold, session: ckpt_fn(session)
 
+      session_config = tf.ConfigProto(
+        gpu_options=tf.GPUOptions(
+          visible_device_list='0',
+          allow_growth=True
+        )
+      )
+
       scaffold = tf.train.Scaffold(
           init_fn=init_fn,
           saver=tf.train.Saver(
@@ -228,7 +235,8 @@ def train(train_dir,
           hooks=hooks,
           save_checkpoint_secs=60,
           master=master,
-          is_chief=is_chief)
+          is_chief=is_chief,
+          config=session_config)
 
 
 def evaluate(train_dir,

@@ -22,7 +22,7 @@ with open(os.path.join(os.path.dirname(__file__),
 
 import sys
 sys.path.append('../')
-from ControllerVAE import controller_vae_configs as configs
+import controller_vae_configs as configs
 
 
 def create_note_seq(notes: List[int],

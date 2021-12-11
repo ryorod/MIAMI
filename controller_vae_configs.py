@@ -21,7 +21,7 @@ from magenta.models.music_vae import data
 from magenta.models.music_vae import lstm_models
 from magenta.models.music_vae import Config
 from magenta.models.music_vae.configs import trio_16bar_converter
-from ControllerVAE.controller_vae_model import ControllerVAE
+from controller_vae_model import ControllerVAE
 
 HParams = contrib_training.HParams
 

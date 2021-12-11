@@ -180,9 +180,6 @@ def train(train_dir,
             num_sync_workers)
         hooks.append(optimizer.make_session_run_hook(is_chief))
 
-      print('saveable!!!!!!!!!!!!!!!!')
-      print(tf_slim.get_variables(collection=ops.GraphKeys.SAVEABLE_OBJECTS))
-
       grads, var_list = list(zip(*optimizer.compute_gradients(
                                     model.loss,
                                     tf.trainable_variables('controller'))))
@@ -201,10 +198,20 @@ def train(train_dir,
       else:
         raise ValueError(
             'Unknown clip_mode: {}'.format(config.hparams.clip_mode))
-      train_op = optimizer.apply_gradients(
-          list(zip(clipped_grads, var_list)),
-          global_step=model.global_step,
-          name='train_step')
+      # train_op = optimizer.apply_gradients(
+      #     list(zip(clipped_grads, var_list)),
+      #     global_step=model.global_step,
+      #     name='train_step')
+
+      def op():
+            r = optimizer.apply_gradients(
+              list(zip(clipped_grads, var_list)),
+              global_step=model.global_step,
+              name='train_step')
+            print('saveable!!!!!!!!!!!!!!!!')
+            print(tf_slim.get_variables(collection=ops.GraphKeys.SAVEABLE_OBJECTS))
+            return r
+      train_op = op()
 
       logging_dict = {'global_step': model.global_step,
                       'loss': model.loss}

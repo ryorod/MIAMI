@@ -173,6 +173,13 @@ def train(train_dir,
             num_sync_workers)
         hooks.append(optimizer.make_session_run_hook(is_chief))
 
+      print('global!!!!!!!!!!!!!!!!')
+      print(tf.global_variables())
+      print('trainable!!!!!!!!!!!!!!')
+      print(tf.trainable_variables())
+      print('controller!!!!!!!!!!!!!!')
+      print(tf.trainable_variables('controller'))
+
       grads, var_list = list(zip(*optimizer.compute_gradients(
                                     model.loss,
                                     tf.trainable_variables('controller'))))

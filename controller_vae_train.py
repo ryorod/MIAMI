@@ -22,6 +22,8 @@ from magenta.models.music_vae import data
 import tensorflow.compat.v1 as tf
 import tf_slim
 
+from tensorflow.python.framework import ops
+
 flags = tf.app.flags
 FLAGS = flags.FLAGS
 
@@ -178,12 +180,8 @@ def train(train_dir,
             num_sync_workers)
         hooks.append(optimizer.make_session_run_hook(is_chief))
 
-      print('global!!!!!!!!!!!!!!!!')
-      print(tf.global_variables())
-      print('trainable!!!!!!!!!!!!!!')
-      print(tf.trainable_variables())
-      print('controller!!!!!!!!!!!!!!')
-      print(tf.trainable_variables('controller'))
+      print('saveable!!!!!!!!!!!!!!!!')
+      print(tf_slim.get_variables(collection=ops.GraphKeys.SAVEABLE_OBJECTS))
 
       grads, var_list = list(zip(*optimizer.compute_gradients(
                                     model.loss,

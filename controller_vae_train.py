@@ -255,6 +255,11 @@ def evaluate(train_dir,
     eval_op = model.eval(
         **_get_input_tensors(dataset_fn().take(num_batches), config))
 
+    session_config = tf.ConfigProto(
+        gpu_options=tf.GPUOptions(
+          visible_device_list='0',
+          allow_growth=True))
+
     hooks = [
         tf_slim.evaluation.StopAfterNEvalsHook(num_batches),
         tf_slim.evaluation.SummaryAtEndHook(eval_dir)
@@ -264,7 +269,8 @@ def evaluate(train_dir,
         eval_ops=eval_op,
         hooks=hooks,
         eval_interval_secs=60,
-        master=master)
+        master=master,
+        config=session_config)
 
 
 def run(config_map,

@@ -237,7 +237,9 @@ def train(train_dir,
         if var_list:
           saver = tf_saver.Saver(
               var_list,
-              reshape=reshape_variables)
+              reshape=reshape_variables,
+              max_to_keep=checkpoints_to_keep,
+              keep_checkpoint_every_n_hours=keep_checkpoint_every_n_hours)
 
           def callback(session):
             saver.restore(session, model_path)

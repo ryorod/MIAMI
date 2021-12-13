@@ -178,10 +178,6 @@ def train(train_dir,
             num_sync_workers)
         hooks.append(optimizer.make_session_run_hook(is_chief))
 
-      for v in tf.global_variables():
-            var_name = v.name[:-2]
-            print(var_name)
-
       grads, var_list = list(zip(*optimizer.compute_gradients(
                                     model.loss,
                                     tf.trainable_variables('controller'))))
@@ -226,7 +222,6 @@ def train(train_dir,
       scaffold = tf.train.Scaffold(
           init_fn=init_fn,
           saver=tf.train.Saver(
-              var_list=tf.global_variables(),
               max_to_keep=checkpoints_to_keep,
               keep_checkpoint_every_n_hours=keep_checkpoint_every_n_hours))
       tf_slim.training.train(

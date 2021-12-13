@@ -161,7 +161,7 @@ def train(train_dir,
     _trial_summary(
         config.hparams, config.train_examples_path or config.tfds_name,
         train_dir)
-  with tf.Graph().as_default():
+  with tf.Graph().as_default() as g:
     with tf.device(tf.train.replica_device_setter(
         num_ps_tasks, merge_devices=True)):
 
@@ -207,6 +207,9 @@ def train(train_dir,
       hooks.append(tf.train.LoggingTensorHook(logging_dict, every_n_iter=100))
       if num_steps:
         hooks.append(tf.train.StopAtStepHook(last_step=num_steps))
+
+      for v in g.get_all_collection_keys():
+        print(v)
 
       variables_to_restore = tf_slim.get_variables_to_restore()
       ckpt_fn = tf_slim.assign_from_checkpoint_fn(checkpoint_path,

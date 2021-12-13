@@ -22,6 +22,9 @@ from magenta.models.music_vae import data
 import tensorflow.compat.v1 as tf
 import tf_slim
 
+from tensorflow.python.platform import tf_logging as logging
+from tensorflow.python.training import saver as tf_saver
+
 flags = tf.app.flags
 FLAGS = flags.FLAGS
 
@@ -208,13 +211,45 @@ def train(train_dir,
       if num_steps:
         hooks.append(tf.train.StopAtStepHook(last_step=num_steps))
 
-      for v in g.get_all_collection_keys():
-        print(v)
-
       variables_to_restore = tf_slim.get_variables_to_restore()
-      ckpt_fn = tf_slim.assign_from_checkpoint_fn(checkpoint_path,
-                                                  variables_to_restore,
-                                                  ignore_missing_vars=True)
+      # ckpt_fn = tf_slim.assign_from_checkpoint_fn(checkpoint_path,
+      #                                             variables_to_restore,
+      #                                             ignore_missing_vars=True)
+      def assign_from_checkpoint_fn(model_path,
+                                    var_list,
+                                    ignore_missing_vars=False,
+                                    reshape_variables=False):
+        if not var_list:
+          raise ValueError('var_list cannot be empty')
+        if ignore_missing_vars:
+          reader = tf.train.NewCheckpointReader(model_path)
+          if isinstance(var_list, dict):
+            var_dict = var_list
+          else:
+            var_dict = {var.op.name: var for var in var_list}
+          available_vars = {}
+          for var in var_dict:
+            if reader.has_tensor(var):
+              available_vars[var] = var_dict[var]
+            else:
+              logging.warning('Variable %s missing in checkpoint %s', var, model_path)
+          var_list = available_vars
+        if var_list:
+          saver = tf_saver.Saver(
+              var_list,
+              reshape=reshape_variables)
+
+          def callback(session):
+            saver.restore(session, model_path)
+
+          return saver, callback
+        else:
+          logging.warning('No Variables to restore')
+          return None
+
+      saver, ckpt_fn = assign_from_checkpoint_fn(checkpoint_path,
+                                                 variables_to_restore,
+                                                 ignore_missing_vars=True)
       init_fn = lambda scaffold, session: ckpt_fn(session)
 
       session_config = tf.ConfigProto(
@@ -224,9 +259,10 @@ def train(train_dir,
 
       scaffold = tf.train.Scaffold(
           init_fn=init_fn,
-          saver=tf.train.Saver(
-              max_to_keep=checkpoints_to_keep,
-              keep_checkpoint_every_n_hours=keep_checkpoint_every_n_hours))
+          # saver=tf.train.Saver(
+          #     max_to_keep=checkpoints_to_keep,
+          #     keep_checkpoint_every_n_hours=keep_checkpoint_every_n_hours)
+            saver=saver)
       tf_slim.training.train(
           train_op=train_op,
           logdir=train_dir,

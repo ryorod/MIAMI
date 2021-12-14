@@ -164,7 +164,7 @@ def train(train_dir,
     _trial_summary(
         config.hparams, config.train_examples_path or config.tfds_name,
         train_dir)
-  with tf.Graph().as_default() as g:
+  with tf.Graph().as_default():
     with tf.device(tf.train.replica_device_setter(
         num_ps_tasks, merge_devices=True)):
 
@@ -237,21 +237,22 @@ def train(train_dir,
         if var_list:
           saver = tf_saver.Saver(
               var_list,
-              reshape=reshape_variables,
-              max_to_keep=checkpoints_to_keep,
-              keep_checkpoint_every_n_hours=keep_checkpoint_every_n_hours)
+              reshape=reshape_variables)
 
           def callback(session):
             saver.restore(session, model_path)
+            print('called!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+            print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+            print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
 
-          return saver, callback
+          return callback
         else:
           logging.warning('No Variables to restore')
           return None
 
-      saver, ckpt_fn = assign_from_checkpoint_fn(checkpoint_path,
-                                                 variables_to_restore,
-                                                 ignore_missing_vars=True)
+      ckpt_fn = assign_from_checkpoint_fn(checkpoint_path,
+                                          variables_to_restore,
+                                          ignore_missing_vars=True)
       init_fn = lambda scaffold, session: ckpt_fn(session)
 
       session_config = tf.ConfigProto(
@@ -261,10 +262,9 @@ def train(train_dir,
 
       scaffold = tf.train.Scaffold(
           init_fn=init_fn,
-          # saver=tf.train.Saver(
-          #     max_to_keep=checkpoints_to_keep,
-          #     keep_checkpoint_every_n_hours=keep_checkpoint_every_n_hours)
-            saver=saver)
+          saver=tf.train.Saver(
+              max_to_keep=checkpoints_to_keep,
+              keep_checkpoint_every_n_hours=keep_checkpoint_every_n_hours))
       tf_slim.training.train(
           train_op=train_op,
           logdir=train_dir,

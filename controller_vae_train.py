@@ -256,6 +256,7 @@ def train(train_dir,
       init_fn = lambda scaffold, session: ckpt_fn(session)
 
       print(tf.train.list_variables(checkpoint_path))
+      print(tf.train.latest_checkpoint(train_dir))
       print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
       print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
 

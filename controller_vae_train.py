@@ -148,6 +148,7 @@ def _get_input_tensors(dataset, config):
 
 def train(train_dir,
           config,
+          checkpoint_path,
           dataset_fn,
           checkpoints_to_keep=5,
           keep_checkpoint_every_n_hours=1,
@@ -210,12 +211,57 @@ def train(train_dir,
       if num_steps:
         hooks.append(tf.train.StopAtStepHook(last_step=num_steps))
 
+      variables_to_restore = tf_slim.get_variables_to_restore()
+      # ckpt_fn = tf_slim.assign_from_checkpoint_fn(checkpoint_path,
+      #                                             variables_to_restore,
+      #                                             ignore_missing_vars=True)
+      def assign_from_checkpoint_fn(model_path,
+                                    var_list,
+                                    ignore_missing_vars=False,
+                                    reshape_variables=False):
+        if not var_list:
+          raise ValueError('var_list cannot be empty')
+        if ignore_missing_vars:
+          reader = tf.train.NewCheckpointReader(model_path)
+          if isinstance(var_list, dict):
+            var_dict = var_list
+          else:
+            var_dict = {var.op.name: var for var in var_list}
+          available_vars = {}
+          for var in var_dict:
+            if reader.has_tensor(var):
+              available_vars[var] = var_dict[var]
+            else:
+              logging.warning('Variable %s missing in checkpoint %s', var, model_path)
+          var_list = available_vars
+        if var_list:
+          saver = tf_saver.Saver(
+              var_list,
+              reshape=reshape_variables)
+
+          def callback(session):
+            saver.restore(session, model_path)
+            print('called!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+            print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+            print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+
+          return callback
+        else:
+          logging.warning('No Variables to restore')
+          return None
+
+      ckpt_fn = assign_from_checkpoint_fn(checkpoint_path,
+                                          variables_to_restore,
+                                          ignore_missing_vars=True)
+      init_fn = lambda scaffold, session: ckpt_fn(session)
+
       session_config = tf.ConfigProto(
         gpu_options=tf.GPUOptions(
           visible_device_list='0',
           allow_growth=True))
 
       scaffold = tf.train.Scaffold(
+          init_fn=init_fn,
           saver=tf.train.Saver(
               max_to_keep=checkpoints_to_keep,
               keep_checkpoint_every_n_hours=keep_checkpoint_every_n_hours))
@@ -278,6 +324,18 @@ def run(config_map,
   Raises:
     ValueError: if required flags are missing or invalid.
   """
+  if not FLAGS.checkpoint_dir:
+    raise ValueError(
+        '`--checkpoint_dir` must be specified.')
+  checkpoint_dir = os.path.expanduser(FLAGS.checkpoint_dir)
+  if not tf.gfile.IsDirectory(checkpoint_dir):
+    raise ValueError(
+        'Path must be to a directory.'
+        'If it is a compressed file, extract it.')
+  for file in os.listdir(checkpoint_dir):
+    if file.endswith('.index'):
+      checkpoint_path = os.path.join(checkpoint_dir, file[0:-6])
+
   if not FLAGS.run_dir:
     raise ValueError('Invalid run directory: %s' % FLAGS.run_dir)
   run_dir = os.path.expanduser(FLAGS.run_dir)
@@ -324,6 +382,7 @@ def run(config_map,
     train(
         train_dir,
         config=config,
+        checkpoint_path=checkpoint_path,
         dataset_fn=dataset_fn,
         checkpoints_to_keep=FLAGS.checkpoints_to_keep,
         keep_checkpoint_every_n_hours=FLAGS.keep_checkpoint_every_n_hours,

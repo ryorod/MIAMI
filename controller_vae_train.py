@@ -255,8 +255,10 @@ def train(train_dir,
                                           ignore_missing_vars=True)
       init_fn = lambda scaffold, session: ckpt_fn(session)
 
-      print(tf.train.list_variables(checkpoint_path))
-      print(tf.train.latest_checkpoint(train_dir))
+      for v in tf.train.list_variables(checkpoint_path):
+        print(v)
+      for w in tf.train.list_variables(tf.train.latest_checkpoint(train_dir)):
+        print(w)
       print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
       print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
 

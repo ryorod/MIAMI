@@ -261,6 +261,7 @@ def train(train_dir,
           allow_growth=True))
 
       scaffold = tf.train.Scaffold(
+          var_list=tf.global_variables(),
           init_fn=init_fn,
           saver=tf.train.Saver(
               max_to_keep=checkpoints_to_keep,

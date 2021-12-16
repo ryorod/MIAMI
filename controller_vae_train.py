@@ -183,7 +183,8 @@ def train(train_dir,
 
       grads, var_list = list(zip(*optimizer.compute_gradients(
                                     model.loss,
-                                    tf.trainable_variables('controller'))))
+                                    # tf.trainable_variables('controller')
+                                    )))
       global_norm = tf.global_norm(grads)
       tf.summary.scalar('global_norm', global_norm)
 
@@ -255,12 +256,11 @@ def train(train_dir,
                                           ignore_missing_vars=True)
       init_fn = lambda scaffold, session: ckpt_fn(session)
 
-      for v in tf.train.list_variables(checkpoint_path):
-        print(v)
-      for w in tf.train.list_variables(tf.train.latest_checkpoint(train_dir)):
-        print(w)
-      print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-      print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+      for v in tf.trainable_variables():
+        if 'controller' in v.name:
+          continue
+        else:
+          tf.stop_gradient(v.name)
 
       session_config = tf.ConfigProto(
         gpu_options=tf.GPUOptions(

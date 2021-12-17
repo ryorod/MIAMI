@@ -183,8 +183,7 @@ def train(train_dir,
 
       grads, var_list = list(zip(*optimizer.compute_gradients(
                                     model.loss,
-                                    # tf.trainable_variables('controller')
-                                    )))
+                                    tf.trainable_variables('controller'))))
       global_norm = tf.global_norm(grads)
       tf.summary.scalar('global_norm', global_norm)
 
@@ -213,54 +212,10 @@ def train(train_dir,
         hooks.append(tf.train.StopAtStepHook(last_step=num_steps))
 
       variables_to_restore = tf_slim.get_variables_to_restore()
-      # ckpt_fn = tf_slim.assign_from_checkpoint_fn(checkpoint_path,
-      #                                             variables_to_restore,
-      #                                             ignore_missing_vars=True)
-      def assign_from_checkpoint_fn(model_path,
-                                    var_list,
-                                    ignore_missing_vars=False,
-                                    reshape_variables=False):
-        if not var_list:
-          raise ValueError('var_list cannot be empty')
-        if ignore_missing_vars:
-          reader = tf.train.NewCheckpointReader(model_path)
-          if isinstance(var_list, dict):
-            var_dict = var_list
-          else:
-            var_dict = {var.op.name: var for var in var_list}
-          available_vars = {}
-          for var in var_dict:
-            if reader.has_tensor(var):
-              available_vars[var] = var_dict[var]
-            else:
-              logging.warning('Variable %s missing in checkpoint %s', var, model_path)
-          var_list = available_vars
-        if var_list:
-          saver = tf_saver.Saver(
-              var_list,
-              reshape=reshape_variables)
-
-          def callback(session):
-            saver.restore(session, model_path)
-            print('called!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-            print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-            print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-
-          return callback
-        else:
-          logging.warning('No Variables to restore')
-          return None
-
-      ckpt_fn = assign_from_checkpoint_fn(checkpoint_path,
-                                          variables_to_restore,
-                                          ignore_missing_vars=True)
+      ckpt_fn = tf_slim.assign_from_checkpoint_fn(checkpoint_path,
+                                                  variables_to_restore,
+                                                  ignore_missing_vars=True)
       init_fn = lambda scaffold, session: ckpt_fn(session)
-
-      for v in tf.trainable_variables():
-        if 'controller' in v.name:
-          continue
-        else:
-          tf.stop_gradient(v.name)
 
       session_config = tf.ConfigProto(
         gpu_options=tf.GPUOptions(

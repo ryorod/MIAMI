@@ -5,3 +5,6 @@ osc:
   send_port: 7878
   receive_port: 5656
 model_path_vae: '/Users/ryorod/MR.VAE-MusicVAE/server/model_file/drums.tar'
+
+train: python ../MR.VAE-MusicVAE/controller_vae_train.py --checkpoint_dir=./hierdec-trio_ckpt --examples_path=./trio_converted/trio.tfrecord --run_dir=./trio_train_dir --checkpoints_to_keep=3 --keep_checkpoint_every_n_hours=3 --mode=train --config=hierdec-trio_16bar_3dim --num_steps=280128
+eval: python ../MR.VAE-MusicVAE/controller_vae_train.py --checkpoint_dir=./hierdec-trio_ckpt --examples_path=./trio_eval_converted/trio_eval.tfrecord --run_dir=./trio_train_dir --mode=eval --config=hierdec-trio_16bar_3dim

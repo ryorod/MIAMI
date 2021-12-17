@@ -72,6 +72,9 @@ flags.DEFINE_bool(
     'cache_dataset', True,
     'Whether to cache the dataset in memory for improved training speed. May '
     'cause memory errors for very large datasets.')
+flags.DEFINE_string(
+    'gpu_id', '0',
+    'The GPU ID to use.')
 flags.DEFINE_integer(
     'task', 0,
     'The task number for this worker.')
@@ -91,7 +94,7 @@ flags.DEFINE_string(
 
 
 # Should not be called from within the graph to avoid redundant summaries.
-def _trial_summary(hparams, examples_path, output_dir):
+def _trial_summary(hparams, examples_path, output_dir, gpu_id):
   """Writes a tensorboard text summary of the trial."""
 
   examples_path_summary = tf.summary.text(
@@ -111,7 +114,7 @@ def _trial_summary(hparams, examples_path, output_dir):
 
   session_config = tf.ConfigProto(
         gpu_options=tf.GPUOptions(
-          visible_device_list='0',
+          visible_device_list=gpu_id,
           allow_growth=True))
 
   with tf.Session(config=session_config) as sess:
@@ -154,6 +157,7 @@ def train(train_dir,
           keep_checkpoint_every_n_hours=1,
           num_steps=None,
           master='',
+          gpu_id='0',
           num_sync_workers=0,
           num_ps_tasks=0,
           task=0):
@@ -163,7 +167,7 @@ def train(train_dir,
   if is_chief:
     _trial_summary(
         config.hparams, config.train_examples_path or config.tfds_name,
-        train_dir)
+        train_dir, gpu_id)
   with tf.Graph().as_default():
     with tf.device(tf.train.replica_device_setter(
         num_ps_tasks, merge_devices=True)):
@@ -219,7 +223,7 @@ def train(train_dir,
 
       session_config = tf.ConfigProto(
         gpu_options=tf.GPUOptions(
-          visible_device_list='0',
+          visible_device_list=gpu_id,
           allow_growth=True))
 
       scaffold = tf.train.Scaffold(
@@ -243,12 +247,13 @@ def evaluate(train_dir,
              config,
              dataset_fn,
              num_batches,
-             master=''):
+             master='',
+             gpu_id='0'):
   """Evaluate the model repeatedly."""
   tf.gfile.MakeDirs(eval_dir)
 
   _trial_summary(
-      config.hparams, config.eval_examples_path or config.tfds_name, eval_dir)
+      config.hparams, config.eval_examples_path or config.tfds_name, eval_dir, gpu_id)
   with tf.Graph().as_default():
     model = config.model
     model.build(config.hparams,
@@ -259,7 +264,7 @@ def evaluate(train_dir,
 
     session_config = tf.ConfigProto(
         gpu_options=tf.GPUOptions(
-          visible_device_list='0',
+          visible_device_list=gpu_id,
           allow_growth=True))
 
     hooks = [
@@ -350,6 +355,7 @@ def run(config_map,
         keep_checkpoint_every_n_hours=FLAGS.keep_checkpoint_every_n_hours,
         num_steps=FLAGS.num_steps,
         master=FLAGS.master,
+        gpu_id=FLAGS.gpu_id,
         num_sync_workers=FLAGS.num_sync_workers,
         num_ps_tasks=FLAGS.num_ps_tasks,
         task=FLAGS.task)
@@ -366,7 +372,8 @@ def run(config_map,
         config=config,
         dataset_fn=dataset_fn,
         num_batches=num_batches,
-        master=FLAGS.master)
+        master=FLAGS.master,
+        gpu_id=FLAGS.gpu_id,)
 
 
 def main(unused_argv):

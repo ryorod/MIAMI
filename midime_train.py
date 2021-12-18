@@ -282,10 +282,9 @@ def train(
 
             variables_to_restore = tf_slim.get_variables_to_restore(
                 include=[v.name for v in restored_vars])
-            ckpt_fn = tf_slim.assign_from_checkpoint_fn(config.pretrained_path,
-                                                        variables_to_restore,
-                                                        ignore_missing_vars=True)
-            init_fn = lambda scaffold, session: ckpt_fn(session)
+            init_assign_op, init_feed_dict = tf_slim.assign_from_checkpoint(config.pretrained_path,
+                                                                            variables_to_restore)
+            init_fn = lambda scaffold, sess: sess.run(init_assign_op, init_feed_dict)
 
             session_config = tf.ConfigProto(
                 gpu_options=tf.GPUOptions(

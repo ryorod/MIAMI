@@ -107,10 +107,6 @@ flags.DEFINE_integer(
     'num_sync_workers', 0,
     'The number of synchronized workers.'
 )
-flags.DEFINE_integer(
-    'num_data_threads', 4,
-    'The number of data preprocessing threads.'
-)
 flags.DEFINE_string(
     'eval_dir_suffix', '',
     'Suffix to add to eval output directory.'
@@ -421,7 +417,6 @@ def run(
         return data.get_dataset(
             config,
             tf_file_reader=tf_file_reader,
-            num_threads=FLAGS.num_data_threads,
             is_training=is_training,
             cache_dataset=FLAGS.cache_dataset
         )

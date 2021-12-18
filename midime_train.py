@@ -93,6 +93,9 @@ flags.DEFINE_bool(
     'Whether to cache the dataset in memory for improved training speed. May '
     'cause memory errors for very large datasets.'
 )
+flags.DEFINE_string(
+    'gpu_id', '0',
+    'The GPU ID to use.')
 flags.DEFINE_integer(
     'task', 0,
     'The task number of this worker.'
@@ -121,7 +124,7 @@ flags.DEFINE_string(
 
 
 # Should not be called from within the graph to avoid redundant summaries.
-def _trial_summary(hparams, examples_path, output_dir):
+def _trial_summary(hparams, examples_path, output_dir, gpu_id):
     """Writes a tensorboard text summary of the trial."""
 
     examples_path_summary = tf.summary.text(
@@ -139,7 +142,12 @@ def _trial_summary(hparams, examples_path, output_dir):
     hparam_summary = tf.summary.text(
         'hparams', tf.constant(hparams_table, name='hparams'), collections=[])
 
-    with tf.Session() as sess:
+    session_config = tf.ConfigProto(
+        gpu_options=tf.GPUOptions(
+          visible_device_list=gpu_id,
+          allow_growth=True))
+
+    with tf.Session(config=session_config) as sess:
         writer = tf.summary.FileWriter(output_dir, graph=sess.graph)
         writer.add_summary(examples_path_summary.eval())
         writer.add_summary(hparam_summary.eval())
@@ -210,6 +218,7 @@ def train(
         keep_checkpoint_every_n_hours=1,
         num_steps=None,
         master='',
+        gpu_id='0',
         num_sync_workers=0,
         num_ps_tasks=0,
         task=0
@@ -219,7 +228,7 @@ def train(
     is_chief = (task == 0)
     if is_chief:
         _trial_summary(
-            config.hparams, config.train_examples_path or config.tfds_name, train_dir
+            config.hparams, config.train_examples_path or config.tfds_name, train_dir, gpu_id
         )
 
     with tf.Graph().as_default():
@@ -284,6 +293,11 @@ def train(
             def init_assign_fn(scaffold, sess):
                 sess.run(init_assign_op, init_feed_dict)
 
+            session_config = tf.ConfigProto(
+                gpu_options=tf.GPUOptions(
+                    visible_device_list=gpu_id,
+                    allow_growth=True))
+
             scaffold = tf.train.Scaffold(
                 init_fn=init_assign_fn,
                 saver=tf.train.Saver(
@@ -298,7 +312,8 @@ def train(
                 hooks=hooks,
                 save_checkpoint_secs=60,
                 master=master,
-                is_chief=is_chief
+                is_chief=is_chief,
+                config=session_config
             )
 
 
@@ -308,13 +323,14 @@ def evaluate(
         config,
         dataset_fn,
         num_batches,
-        master=''
+        master='',
+        gpu_id='0'
 ):
     """Evaluate the model repeatedly."""
     tf.gfile.MakeDirs(eval_dir)
 
     _trial_summary(
-        config.hparams, config.eval_examples_path or config.tfds_name, eval_dir
+        config.hparams, config.eval_examples_path or config.tfds_name, eval_dir, gpu_id
     )
     with tf.Graph().as_default():
         model = config.model
@@ -329,6 +345,11 @@ def evaluate(
             **_get_input_tensors(dataset_fn().take(num_batches), config)
         )
 
+        session_config = tf.ConfigProto(
+            gpu_options=tf.GPUOptions(
+                visible_device_list=gpu_id,
+                allow_growth=True))
+
         hooks = [
             contrib_training.StopAfterNEvalsHook(num_batches),
             contrib_training.SummaryAtEndHook(eval_dir)
@@ -338,7 +359,8 @@ def evaluate(
             eval_ops=eval_op,
             hooks=hooks,
             eval_interval_secs=60,
-            master=master
+            master=master,
+            config=session_config
         )
 
 
@@ -414,6 +436,7 @@ def run(
             keep_checkpoint_every_n_hours=FLAGS.keep_checkpoint_every_n_hours,
             num_steps=FLAGS.num_steps,
             master=FLAGS.master,
+            gpu_id=FLAGS.gpu_id,
             num_sync_workers=FLAGS.num_sync_workers,
             num_ps_tasks=FLAGS.num_ps_tasks,
             task=FLAGS.task
@@ -432,7 +455,8 @@ def run(
             config=config,
             dataset_fn=dataset_fn,
             num_batches=num_batches,
-            master=FLAGS.master
+            master=FLAGS.master,
+            gpu_id=FLAGS.gpu_id
         )
 
 

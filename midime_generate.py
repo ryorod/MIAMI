@@ -29,8 +29,8 @@ from magenta import music as mm
 from magenta.models.music_vae import configs as vae_configs
 import tensorflow.compat.v1 as tf   # pylint: disable=import-error
 
-import configs
-from trained_model import TrainedModel
+import midime_configs as configs
+from midime_trained_model import TrainedModel
 
 
 flags = tf.app.flags

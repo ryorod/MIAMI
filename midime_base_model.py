@@ -27,7 +27,7 @@ import abc
 import six
 import tensorflow.compat.v1 as tf
 import tensorflow_probability as tfp
-from tensorflow.contrib import metrics as contrib_metrics
+from tf.contrib import metrics as contrib_metrics
 
 ds = tfp.distributions
 

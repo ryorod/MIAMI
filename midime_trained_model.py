@@ -29,7 +29,7 @@ import numpy as np
 from backports import tempfile
 import tensorflow.compat.v1 as tf   # pylint: disable=import-error
 from magenta.common import merge_hparams
-from configs import Config
+from midime_configs import Config
 
 
 def _update_config(config1, config2):

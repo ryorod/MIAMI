@@ -27,8 +27,8 @@ import re
 
 from magenta.models.music_vae import data
 import tensorflow.compat.v1 as tf   # pylint: disable=import-error
-from tf.contrib import training as contrib_training     # pylint: disable=import-error
-from tf.contrib import framework as contrib_framework   # pylint: disable=import-error
+from tensorflow.contrib import training as contrib_training     # pylint: disable=import-error
+from tensorflow.contrib import framework as contrib_framework   # pylint: disable=import-error
 
 import midime_configs as configs
 

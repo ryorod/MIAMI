@@ -27,8 +27,7 @@ import re
 
 from magenta.models.music_vae import data
 import tensorflow.compat.v1 as tf   # pylint: disable=import-error
-from tensorflow.contrib import training as contrib_training     # pylint: disable=import-error
-from tensorflow.contrib import framework as contrib_framework   # pylint: disable=import-error
+import tf_slim
 
 import midime_configs as configs
 
@@ -285,9 +284,9 @@ def train(
             if num_steps:
                 hooks.append(tf.train.StopAtStepHook(last_step=num_steps))
 
-            variables_to_restore = contrib_framework.get_variables_to_restore(
+            variables_to_restore = tf_slim.get_variables_to_restore(
                 include=[v.name for v in restored_vars])
-            init_assign_op, init_feed_dict = contrib_framework.assign_from_checkpoint(
+            init_assign_op, init_feed_dict = tf_slim.assign_from_checkpoint(
                 config.pretrained_path, variables_to_restore)
 
             def init_assign_fn(scaffold, sess):
@@ -305,7 +304,7 @@ def train(
                     keep_checkpoint_every_n_hours=keep_checkpoint_every_n_hours,
                 )
             )
-            contrib_training.train(
+            tf_slim.training.train(
                 train_op=train_op,
                 logdir=train_dir,
                 scaffold=scaffold,
@@ -351,10 +350,10 @@ def evaluate(
                 allow_growth=True))
 
         hooks = [
-            contrib_training.StopAfterNEvalsHook(num_batches),
-            contrib_training.SummaryAtEndHook(eval_dir)
+            tf_slim.evaluation.StopAfterNEvalsHook(num_batches),
+            tf_slim.evaluation.SummaryAtEndHook(eval_dir)
         ]
-        contrib_training.evaluate_repeatedly(
+        tf_slim.evaluation.evaluate_repeatedly(
             train_dir,
             eval_ops=eval_op,
             hooks=hooks,

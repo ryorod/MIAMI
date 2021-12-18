@@ -27,7 +27,7 @@ import abc
 import six
 import tensorflow.compat.v1 as tf
 import tensorflow_probability as tfp
-from tensorflow.contrib import metrics as contrib_metrics
+import tf_slim
 
 ds = tfp.distributions
 
@@ -401,7 +401,7 @@ class SmallMusicVAE(object):
             metric_map[n] = tf.metrics.mean(t)
 
         metrics_to_values, metrics_to_update = (
-            contrib_metrics.aggregate_metric_map(metric_map)
+            tf_slim.metrics.aggregate_metric_map(metric_map)
         )
 
         for metric_name, metric_value in metrics_to_values.items():
@@ -726,7 +726,7 @@ class LCMusicVAE(object):
             metric_map[n] = tf.metrics.mean(t)
 
         metrics_to_values, metrics_to_update = (
-            contrib_metrics.aggregate_metric_map(metric_map)
+            tf_slim.metrics.aggregate_metric_map(metric_map)
         )
 
         for metric_name, metric_value in metrics_to_values.items():

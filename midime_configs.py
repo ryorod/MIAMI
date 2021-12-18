@@ -25,13 +25,14 @@ from __future__ import print_function
 import collections
 
 from magenta.common import merge_hparams
+from magenta.contrib import training as contrib_training
 from magenta.models.music_vae import data
 from magenta.models.music_vae import lstm_models
 from magenta.models.music_vae.configs import trio_16bar_converter
-import tensorflow.compat.v1 as tf
-from tensorflow.contrib.training import HParams # pylint: disable=import-error
 
 from midime_base_model import LCMusicVAE, SmallMusicVAE
+
+HParams = contrib_training.HParams
 
 
 class Config(collections.namedtuple(

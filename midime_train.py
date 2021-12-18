@@ -406,7 +406,15 @@ def run(
 
     if not FLAGS.pretrained_path and is_training:
         raise ValueError('Require pre-trained path for training')
-    config_update_map['pretrained_path'] = FLAGS.pretrained_path
+    checkpoint_dir = os.path.expanduser(FLAGS.pretrained_path)
+    if not tf.gfile.IsDirectory(checkpoint_dir):
+        raise ValueError(
+            'Path must be to a directory.'
+            'If it is a compressed file, extract it.')
+    for file in os.listdir(checkpoint_dir):
+        if file.endswith('.index'):
+            checkpoint_path = os.path.join(checkpoint_dir, file[0:-6])
+    config_update_map['pretrained_path'] = checkpoint_path
 
     config = configs.update_config(config, config_update_map)
     if FLAGS.num_sync_workers:

@@ -226,7 +226,7 @@ class SmallMusicVAE(object):
             x = tf.layers.Dense(
                 layer_size,
                 name='latent_encoder/layer{}'.format(i),
-                activation='relu'
+                activation=tf.nn.leaky_relu
             )(x)
 
         # Create smaller latent z' distribution
@@ -260,7 +260,7 @@ class SmallMusicVAE(object):
             x = tf.layers.Dense(
                 layer_size,
                 name='latent_decoder/layer{}'.format(i),
-                activation='relu'
+                activation=tf.nn.leaky_relu
             )(x)
 
         # Recreate z distribution

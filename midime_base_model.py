@@ -226,21 +226,20 @@ class SmallMusicVAE(object):
             x = tf.layers.Dense(
                 layer_size,
                 name='latent_encoder/layer{}'.format(i),
-                activation='relu',
-                kernel_initializer=tf.keras.initializers.glorot_normal
+                activation='relu'
             )(x)
 
         # Create smaller latent z' distribution
         mu = tf.layers.Dense(
             encoded_z_size,
             name='latent_encoder/mu',
-            kernel_initializer=tf.keras.initializers.glorot_normal
+            kernel_initializer=tf.random_normal_initializer(stddev=0.001)
         )(x)
         sigma = tf.layers.Dense(
             encoded_z_size,
             activation=tf.nn.softplus,
             name='latent_encoder/sigma',
-            kernel_initializer=tf.keras.initializers.glorot_normal
+            kernel_initializer=tf.random_normal_initializer(stddev=0.001)
         )(x)
 
         return ds.MultivariateNormalDiag(loc=mu, scale_diag=sigma)
@@ -261,15 +260,14 @@ class SmallMusicVAE(object):
             x = tf.layers.Dense(
                 layer_size,
                 name='latent_decoder/layer{}'.format(i),
-                activation='relu',
-                kernel_initializer=tf.keras.initializers.glorot_normal
+                activation='relu'
             )(x)
 
         # Recreate z distribution
         mu = tf.layers.Dense(
             z_size,
             name='latent_decoder/mu',
-            kernel_initializer=tf.keras.initializers.glorot_normal
+            kernel_initializer=tf.random_normal_initializer(stddev=0.001)
         )(x)
 
         return mu

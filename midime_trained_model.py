@@ -26,7 +26,7 @@ import re
 import tarfile
 import numpy as np
 
-from backports import tempfile
+import tempfile
 import tensorflow.compat.v1 as tf   # pylint: disable=import-error
 from magenta.common import merge_hparams
 from midime_configs import Config

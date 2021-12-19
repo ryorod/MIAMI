@@ -411,10 +411,10 @@ class SmallMusicVAE(object):
 
     def sample(self, n, max_length=None, latent_z=None, c_input=None, **kwargs):
         """Sample with on optional conditional embedding `z`."""
-        if latent_z is not None and latent_z.shape[0].value != n:
+        if latent_z is not None and latent_z.shape[0] != n:
             raise ValueError(
                 '`z` must have a first dimension that equals `n` when given. '
-                'Got: %d vs %d' % (latent_z.shape[0].value, n)
+                'Got: %d vs %d' % (latent_z.shape[0], n)
             )
         if self.hparams.encoded_z_size and latent_z is None:
             tf.logging.warning(

@@ -162,3 +162,36 @@ CONFIG_MAP['hierdec-trio_16bar_3dim'] = Config(
     encoder_train=False,
     decoder_train=False
 )
+
+CONFIG_MAP['cat-drums_2bar_small_3dim'] = Config(
+    model=SmallMusicVAE(lstm_models.BidirectionalLstmEncoder(),
+                        lstm_models.CategoricalLstmDecoder()),
+    hparams=merge_hparams(
+        lstm_models.get_default_hparams(),
+        HParams(
+            batch_size=512,
+            max_seq_len=32,  # 2 bars w/ 16 steps per bar
+            z_size=256,
+            encoded_z_size=3,
+            latent_encoder_layers=[512, 128, 32],
+            latent_decoder_layers=[32, 128, 512],
+            enc_rnn_size=[512],
+            dec_rnn_size=[256, 256],
+            free_bits=48,
+            max_beta=0.2,
+            sampling_schedule='inverse_sigmoid',
+            sampling_rate=1000,
+        )),
+    note_sequence_augmenter=None,
+    data_converter=data.DrumsConverter(
+        max_bars=100,  # Truncate long drum sequences before slicing.
+        slice_bars=2,
+        steps_per_quarter=4,
+        roll_input=True),
+    train_examples_path=None,
+    eval_examples_path=None,
+    pretrained_path=None,
+    var_train_pattern=['latent'],
+    encoder_train=False,
+    decoder_train=False
+)

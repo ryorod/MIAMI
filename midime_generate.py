@@ -25,7 +25,7 @@ from __future__ import print_function
 import os
 import time
 
-from magenta import music as mm
+import note_seq
 from magenta.models.music_vae import configs as vae_configs
 import tensorflow.compat.v1 as tf   # pylint: disable=import-error
 
@@ -137,7 +137,7 @@ def run(config_map, vae_config_map):
         (FLAGS.config, date_and_time, FLAGS.num_outputs))
     logging.info('Outputting %d files as `%s`...', FLAGS.num_outputs, basename)
     for i, ns in enumerate(results):    # pylint: disable=invalid-name
-        mm.sequence_proto_to_midi_file(ns, basename.replace('*', '%03d' % i))
+        note_seq.sequence_proto_to_midi_file(ns, basename.replace('*', '%03d' % i))
 
     logging.info('Done.')
 

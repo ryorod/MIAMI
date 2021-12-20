@@ -91,16 +91,16 @@ CONFIG_MAP['lc-cat-mel_2bar_big'] = Config(
     decoder_train=True
 )
 
-CONFIG_MAP['ae-cat-mel_2bar_big'] = Config(
+CONFIG_MAP['cat-mel_2bar_big_3dim'] = Config(
     model=SmallMusicVAE(lstm_models.BidirectionalLstmEncoder(),
                         lstm_models.CategoricalLstmDecoder()),
     hparams=merge_hparams(
         lstm_models.get_default_hparams(),
         HParams(
-            batch_size=2,
+            batch_size=512,
             max_seq_len=32,  # 2 bars w/ 16 steps per bar
             z_size=512,
-            encoded_z_size=4,
+            encoded_z_size=3,
             latent_encoder_layers=[1024, 256, 64],
             latent_decoder_layers=[64, 256, 1024],
             enc_rnn_size=[2048],

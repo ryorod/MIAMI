@@ -156,10 +156,10 @@ class TrainedModel(object):
 
             # Restore model graph part
             model_saver = tf.train.Saver(model_var_list)
-            if os.path.exists(vae_checkpoint_path) and tarfile.is_tarfile(model_checkpoint_path):
+            if os.path.exists(model_checkpoint_path) and tarfile.is_tarfile(model_checkpoint_path):
                 tf.logging.info('Unbundling model checkpoint.')
                 with tempfile.TemporaryDirectory() as temp_dir:
-                    tar = tarfile.open(vae_checkpoint_path)
+                    tar = tarfile.open(model_checkpoint_path)
                     tar.extractall(temp_dir)
                     # Assume only a single checkpoint is in the directory.
                     for name in tar.getnames():
@@ -222,3 +222,77 @@ class TrainedModel(object):
             )
 
         return self._config.data_converter.from_tensors(samples)
+
+    def decode(self, z, length=None, temperature=1.0, c_input=None):
+        """Decodes a collection of latent vectors into NoteSequences.
+        
+        Args:
+          z: A collection of latent vectors to decode.
+          length: The maximum length of a sample in decoder iterations. Required
+            if end tokens are not being used.
+          temperature: The softmax temperature to use (if applicable).
+          c_input: Control sequence (if applicable).
+        Returns:
+          A list of decodings as NoteSequence objects.
+        Raises:
+          RuntimeError: If called for a non-conditional model.
+          ValueError: If `length` is not specified and an end token is not being
+            used.
+        """
+        tensors = self.decode_to_tensors(z, length, temperature, c_input)
+        if self._c_input is not None:
+          return self._config.data_converter.from_tensors(
+              tensors,
+              np.tile(
+                  np.expand_dims(c_input, 0),
+                  [self._config.hparams.batch_size, 1, 1]))
+        else:
+          return self._config.data_converter.from_tensors(tensors)
+
+    def decode_to_tensors(self, z, length=None, temperature=1.0, c_input=None,
+                          return_full_results=False):
+        """Decodes a collection of latent vectors into output tensors.
+
+        Args:
+          z: A collection of latent vectors to decode.
+          length: The maximum length of a sample in decoder iterations. Required
+            if end tokens are not being used.
+          temperature: The softmax temperature to use (if applicable).
+          c_input: Control sequence (if applicable).
+            return_full_results: If true will return the full decoder_results,
+            otherwise it will return only the samples.
+        Returns:
+          If return_full_results is True, will return the full decoder_results list,
+          otherwise it will return the samples from the decoder as a 2D numpy array.
+        Raises:
+          RuntimeError: If called for a non-conditional model.
+          ValueError: If `length` is not specified and an end token is not being
+            used.
+        """
+        if not self._config.hparams.z_size:
+          raise RuntimeError('Cannot decode with a non-conditional model.')
+
+        if not length and self._config.data_converter.end_token is None:
+          raise ValueError(
+              'A length must be specified when the end token is not used.')
+        batch_size = self._config.hparams.batch_size
+        n = len(z)
+        length = length or tf.int32.max
+
+        batch_pad_amt = -n % batch_size
+        z = np.pad(z, [(0, batch_pad_amt), (0, 0)], mode='constant')
+
+        outputs = []
+        for i in range(len(z) // batch_size):
+          feed_dict = {
+              self._temperature: temperature,
+              self._z_input: z[i*batch_size:(i+1)*batch_size],
+              self._max_length: length,
+          }
+          if self._c_input is not None:
+            feed_dict[self._c_input] = c_input
+          if return_full_results:
+            outputs.extend(self._sess.run(self._decoder_results, feed_dict))
+          else:
+            outputs.extend(self._sess.run(self._outputs, feed_dict))
+        return outputs[:n]

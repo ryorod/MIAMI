@@ -32,7 +32,7 @@ class BasslineLstmDecoder(lstm_models.SplitMultiOutLstmDecoder):
     if start_inputs is None:
       split_start_inputs = [None] * len(self._output_depths)
     else:
-      split_start_inputs = tf.split(start_inputs, self._output_depths, axis=-1)
+      split_start_inputs = tf.split(start_inputs, self._output_depths[1], axis=-1)
 
     sample_results = []
     # bass only

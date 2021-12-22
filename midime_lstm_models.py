@@ -43,7 +43,7 @@ class BasslineLstmDecoder(lstm_models.SplitMultiOutLstmDecoder):
         z=z,
         c_input=c_input,
         temperature=temperature,
-        start_inputs=split_start_inputs[1],
+        start_inputs=split_start_inputs[0],
         **core_sampler_kwargs))
 
     sample_ids, decode_results = list(zip(*sample_results))

@@ -32,6 +32,7 @@ from magenta.models.music_vae.configs import trio_16bar_converter
 
 from midime_base_model import LCMusicVAE, SmallMusicVAE
 from midime_lstm_models import BasslineLstmDecoder
+from midime_data import BassConverter
 
 HParams = contrib_training.HParams
 
@@ -124,6 +125,11 @@ CONFIG_MAP['cat-mel_2bar_big_3dim'] = Config(
     decoder_train=False
 )
 
+bass_16bar_converter = BassConverter(
+    steps_per_quarter=4,
+    slice_bars=16,
+    gap_bars=2)
+
 CONFIG_MAP['bass_16bar_3dim'] = Config(
     model=SmallMusicVAE(
         lstm_models.BidirectionalLstmEncoder(),
@@ -155,7 +161,7 @@ CONFIG_MAP['bass_16bar_3dim'] = Config(
             max_beta=0.2,
         )),
     note_sequence_augmenter=None,
-    data_converter=trio_16bar_converter,
+    data_converter=bass_16bar_converter,
     train_examples_path=None,
     eval_examples_path=None,
     pretrained_path=None,

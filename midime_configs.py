@@ -134,7 +134,7 @@ CONFIG_MAP['bass_16bar_3dim'] = Config(
     model=SmallMusicVAE(
         lstm_models.BidirectionalLstmEncoder(),
         lstm_models.HierarchicalLstmDecoder(
-            BasslineLstmDecoder(
+            lstm_models.SplitMultiOutLstmDecoder(
                 core_decoders=[
                     lstm_models.CategoricalLstmDecoder(),
                     lstm_models.CategoricalLstmDecoder(),

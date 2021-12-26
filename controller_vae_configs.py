@@ -22,6 +22,7 @@ from magenta.models.music_vae import lstm_models
 from magenta.models.music_vae import Config
 from magenta.models.music_vae.configs import trio_16bar_converter
 from controller_vae_model import ControllerVAE
+from midime_lstm_models import BasslineHierarchicalLstmDecoder
 
 HParams = contrib_training.HParams
 
@@ -125,7 +126,7 @@ CONFIG_MAP['hierdec-trio_16bar_3dim'] = Config(
 CONFIG_MAP['bass_16bar_3dim'] = Config(
     model=ControllerVAE(
         lstm_models.BidirectionalLstmEncoder(),
-        lstm_models.HierarchicalLstmDecoder(
+        BasslineHierarchicalLstmDecoder(
             lstm_models.CategoricalLstmDecoder(),
             level_lengths=[16, 16],
             disable_autoregression=True)),

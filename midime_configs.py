@@ -31,7 +31,7 @@ from magenta.models.music_vae import lstm_models
 from magenta.models.music_vae.configs import trio_16bar_converter
 
 from midime_base_model import LCMusicVAE, SmallMusicVAE
-from midime_lstm_models import BasslineLstmDecoder
+from midime_lstm_models import BasslineLstmDecoder, BasslineHierarchicalLstmDecoder
 from midime_data import BassConverter
 
 HParams = contrib_training.HParams
@@ -173,7 +173,7 @@ bass_16bar_converter = BassConverter(
 CONFIG_MAP['bass_16bar_3dim'] = Config(
     model=SmallMusicVAE(
         lstm_models.BidirectionalLstmEncoder(),
-        lstm_models.HierarchicalLstmDecoder(
+        BasslineHierarchicalLstmDecoder(
             lstm_models.CategoricalLstmDecoder(),
             level_lengths=[16, 16],
             disable_autoregression=True)),

@@ -38,22 +38,25 @@ class ReceivedNotesManager:
     def __init__(self, verbose=True):
         self.n_threshold_notes = 3
         self.window_sec = 2.0
-        self.on_output: Callable[[np.ndarray], None] = default_func_on_output
-        self.on_output_midi: Callable[[str], Any] = default_func_on_midi_output
+        self.on_output_drums: Callable[[np.ndarray], None] = default_func_on_output
+        self.on_output_mel: Callable[[np.ndarray], None] = default_func_on_output
+        self.on_output_bass: Callable[[np.ndarray], None] = default_func_on_output
+        # self.on_output_midi: Callable[[str], Any] = default_func_on_midi_output
         self.z = None
         self.verbose = verbose
 
     def update_start_point(self, d: datetime) -> None:
         raise NotImplementedError
 
-    def receive(self, z: np.ndarray) -> None:
+    def receive(self, z: np.ndarray, mode: str) -> None:
         # z: 3dim float32 ndarray
 
         self.z = z
 
         if self.verbose:
             print("-" * 20, "\n")
-        self.output()
+        
+        self.output(mode)
 
         if self.verbose:
             print(
@@ -69,5 +72,18 @@ class ReceivedNotesManager:
         print("Stored notes cleared!")
         return
 
-    def output(self):
-        self.on_output(self.z)
+    def output(self, mode: str):
+        if mode == 'drums':
+            self.on_output_drums(self.z, mode)
+
+        if mode == 'mel':
+            self.on_output_mel(self.z, mode)
+
+        if mode == 'bass':
+            self.on_output_bass(self.z, mode)
+
+        if mode == 'all':
+            # self.on_output_drums(self.z, mode)
+            # self.on_output_mel(self.z, mode)
+            # self.on_output_bass(self.z, mode)
+            raise NotImplementedError

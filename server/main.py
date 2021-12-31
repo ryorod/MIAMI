@@ -50,19 +50,26 @@ if __name__ == "__main__":
     server.data_manager = ReceivedNotesManager()
     # TODO: hard coded send port num, change it
     # server.bypass_sender = OSCSender(args.send_address, 6565)
-    vae = MusicVAEModel(CONFIG["model_path_vae"])
-    vae.load_model()
+    vae_drums = MusicVAEModel(CONFIG["model_path_vae_drums"])
+    vae_mel = MusicVAEModel(CONFIG["model_path_vae_mel"])
+    vae_bass = MusicVAEModel(CONFIG["model_path_vae_bass"])
+    vae_drums.load_model()
+    vae_mel.load_model()
+    vae_bass.load_model()
 
     if args.separate_mode:  # run mannually via shell
         sender = OSCSender(args.send_address, args.send_port)
         print(
             f"Results will be sent to {args.send_address}, port: {args.send_port}")
-        server.data_manager.on_output_midi = on_output_midi_file_func(sender)
-        server.data_manager.on_output = on_output_note_sequence_func(
-            vae, osc_sender=sender)
+        server.data_manager.on_output_drums = on_output_note_sequence_func(
+            vae_drums, osc_sender=sender)
+        server.data_manager.on_output_mel = on_output_note_sequence_func(
+            vae_mel, osc_sender=sender)
+        server.data_manager.on_output_bass = on_output_note_sequence_func(
+            vae_bass, osc_sender=sender)
     else:  # run this from nodejs runtime on Max for Live Device
-        server.data_manager.on_output_midi = on_output_midi_file_func()
-        server.data_manager.on_output = on_output_note_sequence_func(
-            vae)
+        server.data_manager.on_output_drums = on_output_note_sequence_func(vae_drums)
+        server.data_manager.on_output_mel = on_output_note_sequence_func(vae_mel)
+        server.data_manager.on_output_bass = on_output_note_sequence_func(vae_bass)
     print("Starting server process...")
     server.run(single_thread=True)

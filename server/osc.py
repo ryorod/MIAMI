@@ -46,7 +46,7 @@ class OSCServer:
             f"length of input OSC message not matches, expected {expected_arg_length} but got {len(args)}"
         return args
 
-    def _on_received(self, unused_addr, args, *values) -> None:
+    def _on_received_all(self, unused_addr, args, *values) -> None:
 
         # TODO: よく分からん value / arg の扱いを明確にしておく
         # print("value size: ", len(values))
@@ -62,14 +62,44 @@ class OSCServer:
                 xyz_ndarray = np.array(xyz, dtype=np.float32).reshape([1, 3])
                 xyz_ndarray = np.dot(xyz_ndarray, 10)
 
-                self.data_manager.receive(xyz_ndarray)
+                self.data_manager.receive(xyz_ndarray, 'all')
+
+    def _on_received_drums(self, unused_addr, args, *values) -> None:
+        if self.data_manager:
+            if callable(self.data_manager.receive):
+                xyz = self.parse_message(args)
+                xyz_ndarray = np.array(xyz, dtype=np.float32).reshape([1, 3])
+                xyz_ndarray = np.dot(xyz_ndarray, 10)
+
+                self.data_manager.receive(xyz_ndarray, 'drums')
+
+    def _on_received_mel(self, unused_addr, args, *values) -> None:
+        if self.data_manager:
+            if callable(self.data_manager.receive):
+                xyz = self.parse_message(args)
+                xyz_ndarray = np.array(xyz, dtype=np.float32).reshape([1, 3])
+                xyz_ndarray = np.dot(xyz_ndarray, 10)
+
+                self.data_manager.receive(xyz_ndarray, 'mel')
+
+    def _on_received_bass(self, unused_addr, args, *values) -> None:
+        if self.data_manager:
+            if callable(self.data_manager.receive):
+                xyz = self.parse_message(args)
+                xyz_ndarray = np.array(xyz, dtype=np.float32).reshape([1, 3])
+                xyz_ndarray = np.dot(xyz_ndarray, 10)
+
+                self.data_manager.receive(xyz_ndarray, 'bass')
 
     def run(self, single_thread=False) -> None:
         self.dispatcher = Dispatcher()
 
         try:
             # register receive notes event callback
-            self.dispatcher.map(self.address_z_all, self._on_received)
+            self.dispatcher.map(self.address_z_all, self._on_received_all)
+            self.dispatcher.map(self.address_z_mel, self._on_received_mel)
+            self.dispatcher.map(self.address_z_bass, self._on_received_bass)
+            self.dispatcher.map(self.address_z_drums, self._on_received_drums)
 
             self.server = BlockingOSCUDPServer(
                 (self.ip, self.port), self.dispatcher)

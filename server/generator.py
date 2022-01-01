@@ -8,7 +8,8 @@ from typing import Any, List, Optional
 
 import numpy as np
 import yaml
-from magenta.models.music_vae.trained_model import TrainedModel
+# from magenta.models.music_vae.trained_model import TrainedModel
+from magenta.models.music_vae import configs as vae_configs
 from magenta.models.shared import sequence_generator_bundle
 from note_seq import sequence_proto_to_midi_file
 from note_seq.protobuf import generator_pb2, music_pb2
@@ -22,7 +23,8 @@ with open(os.path.join(os.path.dirname(__file__),
 
 import sys
 sys.path.append('../')
-import controller_vae_configs as configs
+import midime_configs as configs
+from midime_trained_model import TrainedModel
 
 
 def create_note_seq(notes: List[int],
@@ -76,22 +78,25 @@ class MusicVAEModel(ModelInterface):
 
     """ Magenta's MusicVAE trained model wrapper class """
 
-    def __init__(self, model_path: str,
-                 config_map_key: Optional[str] = "cat-drums_2bar_small_3dim",
+    def __init__(self, vae_ckpt_path: str, model_ckpt_path: str,
+                 vae_config_map_key: Optional[str] = "cat-drums_2bar_small",
+                 model_config_map_key: Optional[str] = "cat-drums_2bar_small_3dim",
                  midi_output_dir: str = CONFIG["midi_output_dir"]) -> None:
         self.latest_z: Optional[np.ndarray] = None
         self.model: Optional[TrainedModel] = None
-        self.model_path = model_path
+        self.vae_ckpt_path = vae_ckpt_path
+        self.model_ckpt_path = model_ckpt_path
         self.midi_output_dir = midi_output_dir
-        self.config_map_key = config_map_key
-        self.max_seq_len = configs.CONFIG_MAP[config_map_key].hparams.max_seq_len
+        self.vae_config_map_key = vae_config_map_key
+        self.model_config_map_key = model_config_map_key
+        self.max_seq_len = configs.CONFIG_MAP[model_config_map_key].hparams.max_seq_len
 
         # TODO: 長さ決めておく
         self.previous_sequence: Optional[NoteSequence] = None
         self.previous_length: int = 32
         self.previous_sequence_updated: Optional[float] = None
 
-    def load_model(self, path: Optional[str] = None) -> None:
+    def load_model(self, vae_path: Optional[str] = None, model_path: Optional[str] = None) -> None:
         # This will download the mel_2bar_big checkpoint. There are more checkpo
         # ints that youcan use with this model, depending on what kind of output
         # you want
@@ -102,12 +107,15 @@ class MusicVAEModel(ModelInterface):
         info("Initializing Music VAE...")
         try:
             self.model = TrainedModel(
-                configs.CONFIG_MAP[self.config_map_key],
+                vae_config=vae_configs.CONFIG_MAP[self.vae_config_map_key],
+                model_config=configs.CONFIG_MAP[self.model_config_map_key],
                 batch_size=4,
-                checkpoint_dir_or_path=path if path else self.model_path)
-            info(f"Loding Model Done!: {self.model_path}")
+                vae_checkpoint_dir_or_path=vae_path if vae_path else self.vae_ckpt_path,
+                model_checkpoint_dir_or_path=model_path if model_path else self.model_ckpt_path,
+                model_var_pattern=['latent'])
+            info(f"Loding Model Done!: {self.vae_ckpt_path}")
         except Exception as e:
-            warn(f"Failed to load model: {self.model_path}")
+            warn(f"Failed to load model: {self.vae_ckpt_path}")
             warn(e)
 
     def get_configs(self):

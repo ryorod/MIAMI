@@ -50,9 +50,15 @@ if __name__ == "__main__":
     server.data_manager = ReceivedNotesManager()
     # TODO: hard coded send port num, change it
     # server.bypass_sender = OSCSender(args.send_address, 6565)
-    vae_drums = MusicVAEModel(CONFIG["model_path_vae_drums"])
-    vae_mel = MusicVAEModel(CONFIG["model_path_vae_mel"])
-    vae_bass = MusicVAEModel(CONFIG["model_path_vae_bass"])
+    vae_drums = MusicVAEModel(
+        CONFIG["model_path_vae_drums"], CONFIG["model_path_midime_drums"],
+        "cat-drums_2bar_small", "cat-drums_2bar_small_3dim")
+    vae_mel = MusicVAEModel(
+        CONFIG["model_path_vae_mel"], CONFIG["model_path_midime_mel"],
+        "cat-mel_2bar_big", "cat-mel_2bar_big_3dim")
+    vae_bass = MusicVAEModel(
+        CONFIG["model_path_vae_bass"], CONFIG["model_path_midime_bass"],
+        "hierdec-trio_16bar", "bass_16bar_3dim")
     vae_drums.load_model()
     vae_mel.load_model()
     vae_bass.load_model()

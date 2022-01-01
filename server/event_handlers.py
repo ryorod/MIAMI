@@ -47,7 +47,7 @@ def on_output_note_sequence_func(vae: MusicVAEModel,
         generated = vae.decode(z)
 
         if generated is not None:
-            midi_path = vae.write_midi(generated)
+            midi_path = vae.write_midi(generated, mode)
 
             if osc_sender:
                 print(f"midi_path_vae_{mode}", midi_path, "sent to osc")

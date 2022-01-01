@@ -150,10 +150,10 @@ class MusicVAEModel(ModelInterface):
         else:
             warn("MelodyRNN model not loaded!, call `MusicVAEModel.load_model()`")
 
-    def write_midi(self, notes) -> str:
+    def write_midi(self, notes, mode) -> str:
         midi_file_name = datetime.now().strftime("%y%m%d_%H%M%S")
         midi_path = os.path.join(
-            self.midi_output_dir, "music_vae", f"{midi_file_name}.mid")
+            self.midi_output_dir, "music_vae", f"{midi_file_name}_{mode}.mid")
         try:
             sequence_proto_to_midi_file(notes, midi_path)
             return midi_path

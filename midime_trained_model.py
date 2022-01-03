@@ -286,7 +286,7 @@ class TrainedModel(object):
         for i in range(len(z) // batch_size):
           feed_dict = {
               self._temperature: temperature,
-              self._z_input: z[i*batch_size:(i+1)*batch_size],
+              self._latent_z_input: z[i*batch_size:(i+1)*batch_size],
               self._max_length: length,
           }
           if self._c_input is not None:

@@ -58,7 +58,7 @@ if __name__ == "__main__":
         "cat-mel_2bar_big", "cat-mel_2bar_big_3dim")
     vae_bass = MusicVAEModel(
         CONFIG["model_path_vae_bass"], CONFIG["model_path_midime_bass"],
-        "hierdec-trio_16bar", "bass_16bar_3dim")
+        "hierdec-trio_16bar", "hierdec-trio_16bar_3dim")
     vae_drums.load_model()
     vae_mel.load_model()
     vae_bass.load_model()

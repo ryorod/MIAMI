@@ -1,3 +1,4 @@
+import collections
 from functools import wraps
 import os
 import warnings
@@ -51,6 +52,31 @@ def create_note_seq(notes: List[int],
 
     # TODO: handle tempo data on sequence object
     return sequence
+
+
+def start_notes_at_0(s: NoteSequence) -> NoteSequence:
+    """ If a sequence has notes at time before 0.0, scootch them up to 0 """
+    for n in s.notes:
+        if n.start_time < 0:
+            n.end_time -= n.start_time
+            n.start_time = 0
+    return s
+
+
+def note_sequence_to_tokens_for_M4L(seq: NoteSequence) -> str:
+    output_data = ""
+    maped_output = None
+    output_midi = collections.defaultdict(list)
+    for seq_note in seq.notes:
+        # TODO: remove drums/bass output
+        start_time = seq_note.start_time * 1000
+        end_time = seq_note.end_time * 1000
+        output_midi['notes'].append([seq_note.pitch, seq_note.velocity, '{:.2f}'.format(
+            start_time), '{:.2f}'.format(end_time)])
+        maped_output = map(
+            str, sum(output_midi['notes'], []))
+        output_data = ' '.join(maped_output)
+    return output_data
 
 
 class ModelInterface(metaclass=ABCMeta):

@@ -8,7 +8,8 @@ import numpy as np
 import yaml
 from note_seq.protobuf.music_pb2 import NoteSequence
 
-from generator import MusicVAEModel
+from generator import (MusicVAEModel,
+                       note_sequence_to_tokens_for_M4L, start_notes_at_0)
 from osc import OSCSender
 
 sys.path.append(os.path.dirname(__file__))
@@ -47,6 +48,17 @@ def on_output_note_sequence_func(vae: MusicVAEModel,
         generated = vae.decode(z)
 
         if generated is not None:
+
+            ######################################################
+            generated = start_notes_at_0(generated)
+
+            output = note_sequence_to_tokens_for_M4L(generated)
+            if osc_sender:
+                print(f"{mode} notes are sent to {osc_sender.client._port}")
+                osc_sender.send(f"/generated_notes_{mode}", output)
+                osc_sender.send(f"/generate_done_{mode}", '1')
+            ######################################################
+
             midi_path = vae.write_midi(generated, mode)
 
             if osc_sender:

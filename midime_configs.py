@@ -174,16 +174,7 @@ CONFIG_MAP['bass_16bar_3dim'] = Config(
     model=SmallMusicVAE(
         lstm_models.BidirectionalLstmEncoder(),
         BasslineHierarchicalLstmDecoder(
-            BasslineLstmDecoder(
-                core_decoders=[
-                    lstm_models.CategoricalLstmDecoder(),
-                    lstm_models.CategoricalLstmDecoder(),
-                    lstm_models.CategoricalLstmDecoder()],
-                output_depths=[
-                    90,  # melody
-                    90,  # bass
-                    512,  # drums
-                ]),
+            lstm_models.CategoricalLstmDecoder(),
             level_lengths=[16, 16],
             disable_autoregression=True)),
     hparams=merge_hparams(

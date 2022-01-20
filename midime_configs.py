@@ -125,7 +125,7 @@ CONFIG_MAP['cat-mel_2bar_big_3dim'] = Config(
     decoder_train=False
 )
 
-bass_16bar_converter = BassConverter(
+bass_from_trio_converter = BassConverter(
     steps_per_quarter=4,
     slice_bars=16,
     gap_bars=2)
@@ -161,7 +161,7 @@ CONFIG_MAP['hierdec-trio_16bar_3dim'] = Config(
             max_beta=0.2,
         )),
     note_sequence_augmenter=None,
-    data_converter=bass_16bar_converter,
+    data_converter=bass_from_trio_converter,
     train_examples_path=None,
     eval_examples_path=None,
     pretrained_path=None,
@@ -169,6 +169,13 @@ CONFIG_MAP['hierdec-trio_16bar_3dim'] = Config(
     encoder_train=False,
     decoder_train=False
 )
+
+bass_16bar_converter = data.OneHotMelodyConverter(
+    valid_programs=data.ELECTRIC_BASS_PROGRAM,
+    skip_polyphony=False,
+    max_bars=100,  # Truncate long melodies before slicing.
+    slice_bars=16,
+    steps_per_quarter=4)
 
 CONFIG_MAP['bass_16bar_3dim'] = Config(
     model=SmallMusicVAE(

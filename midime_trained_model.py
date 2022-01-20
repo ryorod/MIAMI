@@ -129,6 +129,7 @@ class TrainedModel(object):
             vae_var_list = []
             model_var_list = []
             for v in tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES):
+                print(v.name[:-2])
                 flag = False
                 for pattern in model_var_pattern:
                     if re.search(pattern, v.name):

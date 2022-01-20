@@ -15,7 +15,6 @@
 # Lint as: python3
 """ControllerVAE training script."""
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 import controller_vae_configs as configs
 from magenta.models.music_vae import update_config
@@ -221,9 +220,6 @@ def train(train_dir,
                                                   variables_to_restore,
                                                   ignore_missing_vars=True)
       init_fn = lambda scaffold, session: ckpt_fn(session)
-
-      for v in tf.trainable_variables():
-        print(v.name[:-2])
 
       session_config = tf.ConfigProto(
         gpu_options=tf.GPUOptions(

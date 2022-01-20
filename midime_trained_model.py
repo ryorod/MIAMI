@@ -29,6 +29,7 @@ import numpy as np
 import tempfile
 import tensorflow.compat.v1 as tf   # pylint: disable=import-error
 from magenta.common import merge_hparams
+from magenta.models.music_vae.configs import trio_16bar_converter
 from midime_configs import Config
 
 
@@ -86,7 +87,7 @@ class TrainedModel(object):
             model = self._config.model
             model.build(
                 self._config.hparams,
-                self._config.data_converter.output_depth,
+                trio_16bar_converter.output_depth if is_bass_model else self._config.data_converter.output_depth,
                 encoder_train=False,
                 decoder_train=False,
             )
@@ -102,19 +103,19 @@ class TrainedModel(object):
 
             if self._config.data_converter.control_depth > 0:
                 self._c_input = tf.placeholder(
-                    tf.float32, shape=[None, self._config.data_converter.control_depth])
+                    tf.float32, shape=[None, trio_16bar_converter.control_depth if is_bass_model else self._config.data_converter.control_depth])
             else:
                 self._c_input = None
 
             self._inputs = tf.placeholder(
                 tf.float32,
-                shape=[batch_size, None, self._config.data_converter.input_depth])
+                shape=[batch_size, None, trio_16bar_converter.input_depth if is_bass_model else self._config.data_converter.input_depth])
             self._controls = tf.placeholder(
                 tf.float32,
-                shape=[batch_size, None, self._config.data_converter.control_depth])
+                shape=[batch_size, None, trio_16bar_converter.control_depth if is_bass_model else self._config.data_converter.control_depth])
             self._inputs_length = tf.placeholder(
                 tf.int32,
-                shape=[batch_size] + list(self._config.data_converter.length_shape))
+                shape=[batch_size] + list(trio_16bar_converter.length_shape if is_bass_model else self._config.data_converter.length_shape))
             self._max_length = tf.placeholder(tf.int32, shape=())
 
             # Outputs

@@ -23,6 +23,7 @@ from __future__ import division
 from __future__ import print_function
 
 import os
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 import re
 
 from magenta.models.music_vae import data
@@ -181,6 +182,7 @@ def _get_restore_vars(train_pattern):
     """Get list of variables we want to restored."""
     restored_vars = []
     for v in tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES):
+        print(v.name[:-2])
         flag = False
         for pattern in train_pattern:
             if re.search(pattern, v.name):
@@ -286,6 +288,9 @@ def train(
                                                                             variables_to_restore)
             init_fn = lambda scaffold, sess: sess.run(init_assign_op, init_feed_dict)
 
+            for v in tf.global_variables():
+                print(v.name[:-2])
+            
             session_config = tf.ConfigProto(
                 gpu_options=tf.GPUOptions(
                     visible_device_list=gpu_id,

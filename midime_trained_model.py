@@ -147,6 +147,8 @@ class TrainedModel(object):
 
             # Restore vae graph part
             self._sess = tf.Session(target=session_target)
+            self._sess.run(tf.global_variables_initializer())
+            
             vae_saver = tf.train.Saver(vae_var_list)
             if os.path.exists(vae_checkpoint_path) and tarfile.is_tarfile(vae_checkpoint_path):
                 tf.logging.info('Unbundling vae checkpoint.')

@@ -61,6 +61,10 @@ flags.DEFINE_string(
     'vae_config', None,
     'The name of pretrained MusicVAE model'
 )
+flags.DEFINE_bool(
+    'is_bass_model', False,
+    'Whether to generate only bass or not.'
+)
 flags.DEFINE_integer(
     'num_outputs', 5,
     'In `sample` model, the number of samples to produce. In `interpolate` '
@@ -123,7 +127,8 @@ def run(config_map, vae_config_map):
         batch_size=min(FLAGS.max_batch_size, FLAGS.num_outputs),
         vae_checkpoint_dir_or_path=vae_checkpoint_dir_or_path,
         model_checkpoint_dir_or_path=checkpoint_dir_or_path,
-        model_var_pattern=['latent'], session_target='')
+        model_var_pattern=['latent'], is_bass_model=FLAGS.is_bass_model,
+        session_target='')
 
     logging.info('Sampling...')
     results = model.sample(

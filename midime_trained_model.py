@@ -68,7 +68,7 @@ class TrainedModel(object):
 
     def __init__(
             self, vae_config, model_config, batch_size, vae_checkpoint_dir_or_path=None,
-            model_checkpoint_dir_or_path=None, model_var_pattern=None,
+            model_checkpoint_dir_or_path=None, model_var_pattern=None, is_bass_model=False,
             session_target='', **sample_kwargs):
         if tf.gfile.IsDirectory(vae_checkpoint_dir_or_path):
             vae_checkpoint_path = tf.train.latest_checkpoint(vae_checkpoint_dir_or_path)
@@ -129,14 +129,21 @@ class TrainedModel(object):
             vae_var_list = []
             model_var_list = []
             for v in tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES):
-                print(v.name[:-2])
                 flag = False
                 for pattern in model_var_pattern:
                     if re.search(pattern, v.name):
                         flag = True
                         model_var_list.append(v)
                 if not flag:
-                    vae_var_list.append(v)
+                    if is_bass_model:
+                        vae_var_list = {}
+                        var_name = v.name[:-2]
+                        var_name = var_name.replace('core_decoder', 'core_decoder/core_decoder_1')
+                        if var_name != v.name[:-2]:
+                            tf.logging.info('Renaming `%s` to `%s`.', v.name[:-2], var_name)
+                        vae_var_list[var_name] = v
+                    else:
+                        vae_var_list.append(v)
 
             # Restore vae graph part
             self._sess = tf.Session(target=session_target)

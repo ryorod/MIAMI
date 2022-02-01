@@ -14,4 +14,5 @@ build/
 server/model_file/
 config.yml
 *.mid
+*.wav*
 **/Backup/

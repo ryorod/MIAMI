@@ -12,6 +12,8 @@ Download pre-trained models
 
 and put them under `server/model_file`.
 
+Create `config.yml` (refer to `config.yml.sample`).
+
 `cd server`  
 `pip install -r requirements.txt`  
 `python main.py --separate_mode --verbose`

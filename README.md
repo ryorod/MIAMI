@@ -7,7 +7,10 @@ The repository for the MR interface is [here](https://github.com/ryorod/MIAMI_in
 Download pre-trained models  
 - [cat-drums_2bar_small.lokl](https://storage.googleapis.com/magentadata/models/music_vae/checkpoints/cat-drums_2bar_small.lokl.tar)  
 - [cat-mel_2bar_big](https://storage.googleapis.com/magentadata/models/music_vae/checkpoints/cat-mel_2bar_big.tar)  
-- [hierdec-trio_16bar](https://storage.googleapis.com/magentadata/models/music_vae/checkpoints/hierdec-trio_16bar.tar)
+- [hierdec-trio_16bar](https://storage.googleapis.com/magentadata/models/music_vae/checkpoints/hierdec-trio_16bar.tar)  
+- [3dim drums, melody, trio MidiMe models](https://github.com/ryorod/MIAMI/releases/download/drums_melody_trio_models_v1.0/drums_melody_trio_models.zip) (unzip it)
+
+and put them under `server/model_file`.
 
 `cd server`  
 `pip install -r requirements.txt`  

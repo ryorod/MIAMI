@@ -4,6 +4,15 @@ The repository for the MR interface is [here](https://github.com/ryorod/MIAMI_in
 
 ---
 
+Tested on system requirements below.
+
+- [requirements.txt](/server/requirements.txt)
+- Python 3.7.8
+- Ableton Live 11 Suite (11.0.12)
+- Max 8.1.11
+
+---
+
 Download pre-trained models  
 - [cat-drums_2bar_small.lokl](https://storage.googleapis.com/magentadata/models/music_vae/checkpoints/cat-drums_2bar_small.lokl.tar)  
 - [cat-mel_2bar_big](https://storage.googleapis.com/magentadata/models/music_vae/checkpoints/cat-mel_2bar_big.tar)  

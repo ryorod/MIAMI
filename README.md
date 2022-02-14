@@ -6,6 +6,7 @@ The repository for the MR interface is [here](https://github.com/ryorod/MIAMI_in
 
 Tested on system requirements below.
 
+- macOS Catalina (10.15.4) or Big Sur (11.6.1)
 - [requirements.txt](/server/requirements.txt)
 - Python 3.7.8
 - Ableton Live 11 Suite (11.0.12)

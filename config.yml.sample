@@ -1,12 +1,12 @@
-midi_output_dir: '/Users/ryorod/MR.VAE-MusicVAE/server/sample_midi_data'
+midi_output_dir: '/Users/ryorod/MIAMI/server/sample_midi_data'
 osc:
   send_address: localhost
   receive_address: 192.168.11.10
   send_port: 7878
   receive_port: 5656
-model_path_midime_drums: '/Users/ryorod/MR.VAE-MusicVAE/server/model_file/drums_train_10000sample/train'
-model_path_midime_mel: '/Users/ryorod/MR.VAE-MusicVAE/server/model_file/mel_train_10000sample/train'
-model_path_midime_bass: '/Users/ryorod/MR.VAE-MusicVAE/server/model_file/trio_train_dir/train'
-model_path_vae_drums: '/Users/ryorod/MR.VAE-MusicVAE/server/model_file/cat-drums_2bar_small.lokl.tar'
-model_path_vae_mel: '/Users/ryorod/MR.VAE-MusicVAE/server/model_file/cat-mel_2bar_big.tar'
-model_path_vae_bass: '/Users/ryorod/MR.VAE-MusicVAE/server/model_file/hierdec-trio_16bar.tar'
+model_path_midime_drums: '/Users/ryorod/MIAMI/server/model_file/drums_train_10000sample/train'
+model_path_midime_mel: '/Users/ryorod/MIAMI/server/model_file/mel_train_10000sample/train'
+model_path_midime_bass: '/Users/ryorod/MIAMI/server/model_file/trio_train_dir/train'
+model_path_vae_drums: '/Users/ryorod/MIAMI/server/model_file/cat-drums_2bar_small.lokl.tar'
+model_path_vae_mel: '/Users/ryorod/MIAMI/server/model_file/cat-mel_2bar_big.tar'
+model_path_vae_bass: '/Users/ryorod/MIAMI/server/model_file/hierdec-trio_16bar.tar'
